@@ -11,4 +11,9 @@
     <PackageReference Include="TUnit" Version="0.10.26" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Open.BlobStorageAdapter\Open.BlobStorageAdapter.csproj" />
+    <ProjectReference Include="..\Open.BlobStorageAdapter.FileSystem\Open.BlobStorageAdapter.FileSystem.csproj" />
+  </ItemGroup>
+
 </Project>
