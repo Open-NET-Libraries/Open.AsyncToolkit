@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net9.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' ">
+		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.*" />
+	</ItemGroup>
+
+	<!-- Disable the nullable warnings when compiling for .NET Standard 2.0 -->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<NoWarn>$(NoWarn);nullable</NoWarn>
+	</PropertyGroup>
+
+</Project>
