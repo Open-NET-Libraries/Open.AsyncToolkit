@@ -187,6 +187,18 @@ public class FileSystemBlobStore : IBlobStore
 		}
 	}
 
+	public ValueTask<bool> CreateAsync(
+		string key,
+		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken = default)
+		=> WriteAsync(key, false, writeHandler, cancellationToken);
+
+	public ValueTask<bool> WriteAsync(
+		string key,
+		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken = default)
+		=> WriteAsync(key, true, writeHandler, cancellationToken);
+
 	/// <summary>
 	/// Deletes a blob with the specified key.
 	/// </summary>

@@ -4,8 +4,8 @@ namespace Open.BlobStorageAdapter;
 /// Defines operations for storing and retrieving binary data (blobs) with a generic key type.
 /// </summary>
 /// <typeparam name="TKey">The type of key used to identify blobs in the store.</typeparam>
-public interface IBlobStore<TKey>
-	: IBlobRepo<TKey>, IWriteBlobs<TKey>, IDeleteBlobs<TKey>
+public interface IBlobRepo<TKey>
+	: ICreateBlobs<TKey>, IReadBlobs<TKey>
 	where TKey : notnull;
 
 /// <summary>
@@ -14,5 +14,5 @@ public interface IBlobStore<TKey>
 /// <remarks>
 /// This is a convenience interface that specifies string as the key type.
 /// </remarks>
-public interface IBlobStore
-	: IBlobStore<string>, IBlobRepo, IWriteBlobs, IDeleteBlobs;
+public interface IBlobRepo
+	: IBlobStore<string>, ICreateBlobs, IReadBlobs;
