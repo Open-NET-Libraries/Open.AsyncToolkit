@@ -1,3 +1,5 @@
+using Open.BlobStorageAdapter.AsyncItem;
+
 namespace Open.BlobStorageAdapter.FileSystem;
 
 /// <summary>
@@ -193,7 +195,7 @@ public class FileSystemBlobStore : IBlobStore
 		CancellationToken cancellationToken = default)
 		=> WriteAsync(key, false, writeHandler, cancellationToken);
 
-	public ValueTask<bool> UpdateAsync(
+	public ValueTask<bool> CreateOrUpdateAsync(
 		string key,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
 		CancellationToken cancellationToken = default)
@@ -229,7 +231,7 @@ public class FileSystemBlobStore : IBlobStore
 	// Explicit interface implementations
 
 	/// <inheritdoc />
-	ValueTask<bool> IReadBlobs<string>.ExistsAsync(
+	ValueTask<bool> IReadAsync<string, Stream>.ExistsAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
@@ -238,7 +240,7 @@ public class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	ValueTask<Stream?> IReadBlobs<string>.ReadAsync(
+	ValueTask<Stream?> IReadAsync<string, Stream>.ReadAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
@@ -248,11 +250,18 @@ public class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	ValueTask<bool> IDeleteBlobs<string>.DeleteAsync(
+	ValueTask<bool> IDeleteAsync<string>.DeleteAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 		return new ValueTask<bool>(Delete(key));
 	}
+
+	/// <inheritdoc />
+	ValueTask<bool> IUpdateBlobs<string>.UpdateAsync(
+		string key,
+		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken)
+		=> WriteAsync(key, true, writeHandler, cancellationToken);
 }

@@ -1,11 +1,9 @@
-﻿using Open.BlobStorageAdapter.AsyncItem;
-
-namespace Open.BlobStorageAdapter;
+﻿namespace Open.BlobStorageAdapter;
 
 /// <summary>
 /// Defines operations for storing binary data (blobs) with a generic key type.
 /// </summary>
-public interface ICreateBlobs<TKey> : ICreateAsync<TKey, Stream>
+public interface ICreateBlobs<TKey>
 	where TKey : notnull
 {
 	ValueTask<bool> CreateAsync(

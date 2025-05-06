@@ -43,9 +43,7 @@ public class FileSystemBlobStoreTests
 	// Async API
 	[Test]
 	public async Task ExistsAsync_ReturnsFalse_WhenBlobDoesNotExist()
-	{
-		await CheckBlobNotExists("nonexistent-key", useAsync: true);
-	}
+		=> await CheckBlobNotExists("nonexistent-key", useAsync: true);
 
 	[Test]
 	public async Task ExistsAsync_ReturnsTrue_WhenBlobExists()
@@ -60,9 +58,7 @@ public class FileSystemBlobStoreTests
 	// Sync API
 	[Test]
 	public async Task Exists_ReturnsFalse_WhenBlobDoesNotExist()
-	{
-		await CheckBlobNotExists("nonexistent-key-sync", useAsync: false);
-	}
+		=> await CheckBlobNotExists("nonexistent-key-sync", useAsync: false);
 
 	[Test]
 	public async Task Exists_ReturnsTrue_WhenBlobExists()
@@ -86,9 +82,7 @@ public class FileSystemBlobStoreTests
 	// Async API
 	[Test]
 	public async Task ReadAsync_ReturnsNull_WhenBlobDoesNotExist()
-	{
-		await CheckReadReturnsNull("nonexistent-key", useAsync: true);
-	}
+		=> await CheckReadReturnsNull("nonexistent-key", useAsync: true);
 
 	[Test]
 	public async Task ReadAsync_ReturnsContent_WhenBlobExists()
@@ -102,9 +96,7 @@ public class FileSystemBlobStoreTests
 	// Sync API
 	[Test]
 	public async Task Read_ReturnsNull_WhenBlobDoesNotExist()
-	{
-		await CheckReadReturnsNull("nonexistent-key-sync", useAsync: false);
-	}
+		=> await CheckReadReturnsNull("nonexistent-key-sync", useAsync: false);
 
 	[Test]
 	public async Task Read_ReturnsContent_WhenBlobExists()
@@ -166,9 +158,7 @@ public class FileSystemBlobStoreTests
 	// Async API
 	[Test]
 	public async Task DeleteAsync_ReturnsFalse_WhenBlobDoesNotExist()
-	{
-		await CheckDeleteReturnsExpectedResult("nonexistent-key", expected: false, useAsync: true);
-	}
+		=> await CheckDeleteReturnsExpectedResult("nonexistent-key", expected: false, useAsync: true);
 
 	[Test]
 	public async Task DeleteAsync_ReturnsTrueAndDeletesBlob_WhenBlobExists()
@@ -182,9 +172,7 @@ public class FileSystemBlobStoreTests
 	// Sync API
 	[Test]
 	public async Task Delete_ReturnsFalse_WhenBlobDoesNotExist()
-	{
-		await CheckDeleteReturnsExpectedResult("nonexistent-key-sync", expected: false, useAsync: false);
-	}
+		=> await CheckDeleteReturnsExpectedResult("nonexistent-key-sync", expected: false, useAsync: false);
 
 	[Test]
 	public async Task Delete_ReturnsTrueAndDeletesBlob_WhenBlobExists()
@@ -323,27 +311,29 @@ public class FileSystemBlobStoreTests
 	#region Helper Methods
 
 	// Helper method to write text content to a blob
-	private Task<bool> WriteTextAsync(string key, string content)
+	private ValueTask<bool> WriteTextAsync(string key, string content)
 		=> WriteTextAsync(key, false, content);
 
 	// Helper method to write text content to a blob with overwrite option
-	private async Task<bool> WriteTextAsync(string key, bool overwrite, string content)
+	private ValueTask<bool> WriteTextAsync(string key, bool overwrite, string content)
 	{
-		bool success = await _blobStore.WriteAsync(key, overwrite, async (stream, ct) =>
+		async ValueTask Handler(Stream stream, CancellationToken ct)
 		{
 			byte[] bytes = Encoding.UTF8.GetBytes(content);
 			await stream.WriteAsync(bytes, ct);
-		}, CancellationToken.None);
-		
-		return success;
+		}
+
+		return overwrite
+			? _blobStore.UpdateAsync(key, Handler)
+			: _blobStore.CreateAsync(key, Handler);
 	}
 
 	// Helper method to check existence of a blob
 	private async Task<bool> CheckBlobNotExists(string key, bool useAsync)
 	{
 		// Act
-		bool exists = useAsync 
-			? await _blobStore.ExistsAsync(key) 
+		bool exists = useAsync
+			? await _blobStore.ExistsAsync(key)
 			: _fileSystemBlobStore.Exists(key);
 
 		// Assert
@@ -356,7 +346,7 @@ public class FileSystemBlobStoreTests
 	{
 		// Create a new blob (overwrite=false)
 		bool written = await WriteTextAsync(key, false, content);
-		
+
 		// Act
 		bool exists = useAsync
 			? await _blobStore.ExistsAsync(key)
@@ -496,13 +486,13 @@ public class FileSystemBlobStoreTests
 		{
 			if (isKeyNull)
 			{
-				await ((Func<Task>)(async () => 
+				await ((Func<Task>)(async () =>
 					await _fileSystemBlobStore.WriteAsync(null!, false, (stream, ct) => new ValueTask(), CancellationToken.None)))
 					.ThrowsAsync<ArgumentNullException>();
 			}
 			else
 			{
-				await ((Func<Task>)(async () => 
+				await ((Func<Task>)(async () =>
 					await _fileSystemBlobStore.WriteAsync("key", false, null!, CancellationToken.None)))
 					.ThrowsAsync<ArgumentNullException>();
 			}
@@ -511,13 +501,13 @@ public class FileSystemBlobStoreTests
 		{
 			if (isKeyNull)
 			{
-				await ((Func<Task>)(async () => 
+				await ((Func<Task>)(async () =>
 					await _fileSystemBlobStore.WriteAsync(null!, false, (s, ct) => new ValueTask())))
 					.ThrowsAsync<ArgumentNullException>();
 			}
 			else
 			{
-				await ((Func<Task>)(async () => 
+				await ((Func<Task>)(async () =>
 					await _fileSystemBlobStore.WriteAsync("key", false, null!)))
 					.ThrowsAsync<ArgumentNullException>();
 			}

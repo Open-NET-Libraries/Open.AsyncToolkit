@@ -1,3 +1,5 @@
+using Open.BlobStorageAdapter.AsyncItem;
+
 namespace Open.BlobStorageAdapter;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Open.BlobStorageAdapter;
 /// </summary>
 /// <typeparam name="TKey">The type of key used to identify blobs in the store.</typeparam>
 public interface IBlobStore<TKey>
-	: IBlobRepo<TKey>, IUpdateBlobs<TKey>, IDeleteBlobs<TKey>
+	: IBlobRepo<TKey>, ICreateAndUpdateBlobs<TKey>, IDeleteAsync<TKey>
 	where TKey : notnull;
 
 /// <summary>
@@ -15,4 +17,4 @@ public interface IBlobStore<TKey>
 /// This is a convenience interface that specifies string as the key type.
 /// </remarks>
 public interface IBlobStore
-	: IBlobStore<string>, IBlobRepo, IUpdateBlobs, IDeleteBlobs;
+	: IBlobStore<string>, IBlobRepo, ICreateAndUpdateBlobs, IDeleteBlobs;
