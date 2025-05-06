@@ -55,7 +55,8 @@ public class FileSystemBlobStoreTests
 		string key = "test-key";
 		string content = "Hello, World!";
 
-		await WriteTextAsync(key, content);
+		// Create a new blob (overwrite=false)
+		await WriteTextAsync(key, false, content);
 
 		// Act
 		bool exists = await _blobStore.ExistsAsync(key);
@@ -84,7 +85,7 @@ public class FileSystemBlobStoreTests
 		string key = "test-key";
 		string expectedContent = "Hello, World!";
 
-		await WriteTextAsync(key, expectedContent);
+		await WriteTextAsync(key, false, expectedContent);
 
 		// Act
 		using Stream? stream = await _blobStore.ReadAsync(key);
@@ -130,11 +131,11 @@ public class FileSystemBlobStoreTests
 		string initialContent = "Initial content";
 		string updatedContent = "Updated content";
 
-		// Write initial content
-		await WriteTextAsync(key, initialContent);
+		// Write initial content with overwrite=false (new file)
+		await WriteTextAsync(key, false, initialContent);
 
-		// Act - Overwrite with updated content
-		await WriteTextAsync(key, updatedContent);
+		// Act - Overwrite with updated content - must set overwrite=true
+		await WriteTextAsync(key, true, updatedContent);
 
 		// Assert
 		using Stream? stream = await _blobStore.ReadAsync(key);
@@ -203,23 +204,15 @@ public class FileSystemBlobStoreTests
 		string key = "test-key-sync";
 		string content = "Hello, World!";
 
-		bool written = await _fileSystemBlobStore.WriteAsync(key, false, async (stream, ct) =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(content);
-			await stream.WriteAsync(bytes, ct);
-		}, CancellationToken.None);
-
+		// Create a new blob (overwrite=false)
+		bool written = await WriteTextAsync(key, false, content);
 		await Assert.That(written).IsTrue();
 
 		bool exists = _fileSystemBlobStore.Exists(key);
 		await Assert.That(exists).IsTrue();
 
-		written = await _fileSystemBlobStore.WriteAsync(key, false, async (stream, ct) =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(content);
-			await stream.WriteAsync(bytes, ct);
-		}, CancellationToken.None);
-
+		// Try to write again without overwrite
+		written = await WriteTextAsync(key, false, content);
 		await Assert.That(written).IsFalse();
 	}
 
@@ -243,13 +236,8 @@ public class FileSystemBlobStoreTests
 		string key = "test-key-sync-read";
 		string expectedContent = "Hello, World Sync!";
 
-		bool written = await _fileSystemBlobStore.WriteAsync(key, false, async (stream, ct) =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(expectedContent);
-			await stream.WriteAsync(bytes, ct);
-		}, CancellationToken.None);
-
-		await Assert.That(written).IsTrue();
+		// Create a blob with overwrite=false
+		await WriteTextAsync(key, false, expectedContent);
 
 		// Act
 		using Stream? stream = _fileSystemBlobStore.Read(key);
@@ -271,11 +259,7 @@ public class FileSystemBlobStoreTests
 		string content = "New content sync";
 
 		// Act
-		_fileSystemBlobStore.Write(key, stream =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(content);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+		await WriteTextAsync(key, false, content);
 
 		// Assert
 		await Assert.That(_fileSystemBlobStore.Exists(key)).IsTrue();
@@ -299,18 +283,10 @@ public class FileSystemBlobStoreTests
 		string updatedContent = "Updated content sync";
 
 		// Write initial content
-		_fileSystemBlobStore.Write(key, stream =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(initialContent);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+		await WriteTextAsync(key, false, initialContent);
 
 		// Act - Overwrite with updated content
-		_fileSystemBlobStore.Write(key, stream =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(updatedContent);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+		await WriteTextAsync(key, true, updatedContent);
 
 		// Assert
 		using Stream? stream = _fileSystemBlobStore.Read(key);
@@ -342,11 +318,7 @@ public class FileSystemBlobStoreTests
 		string key = "test-key-sync-delete";
 		string content = "Hello, World Sync Delete!";
 
-		_fileSystemBlobStore.Write(key, stream =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(content);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+		await WriteTextAsync(key, false, content);
 
 		// Verify blob exists before deletion
 		await Assert.That(_fileSystemBlobStore.Exists(key)).IsTrue();
@@ -368,23 +340,25 @@ public class FileSystemBlobStoreTests
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenKeyIsNull()
 		// Act & Assert
-		=> await ((Action)(() => _fileSystemBlobStore.Write(null!, stream => { }))).Throws<ArgumentNullException>();
+		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(null!, false, (stream, ct) => new ValueTask(), CancellationToken.None)))
+			.ThrowsAsync<ArgumentNullException>();
 
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenWriteActionIsNull()
 		// Act & Assert
-		=> await ((Action)(() => _fileSystemBlobStore.Write("key", null!))).Throws<ArgumentNullException>();
+		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync("key", false, null!, CancellationToken.None)))
+			.ThrowsAsync<ArgumentNullException>();
 
 	[Test]
 	public async Task WriteAsync_ThrowsArgumentNullException_WhenKeyIsNull()
 		// Act & Assert
-		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(null!, (s, ct) => new ValueTask())))
+		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(null!, false, (s, ct) => new ValueTask())))
 			.ThrowsAsync<ArgumentNullException>();
 
 	[Test]
 	public async Task WriteAsync_ThrowsArgumentNullException_WhenWriteHandlerIsNull()
 		// Act & Assert
-		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync("key", null!)))
+		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync("key", false, null!)))
 			.ThrowsAsync<ArgumentNullException>();
 
 	[Test]
@@ -406,10 +380,10 @@ public class FileSystemBlobStoreTests
 		cts.Cancel(); // Cancel before operation
 
 		// Act & Assert
-		await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(key, (s, ct) =>
+		await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(key, false, async (s, ct) =>
 		{
 			ct.ThrowIfCancellationRequested();
-			return new ValueTask();
+			await Task.CompletedTask;
 		}, cts.Token))).ThrowsAsync<OperationCanceledException>();
 	}
 
@@ -420,12 +394,8 @@ public class FileSystemBlobStoreTests
 		string key = "interop-key";
 		string content = "Sync and async interoperability";
 
-		// Act - Write with sync method
-		_fileSystemBlobStore.Write(key, stream =>
-		{
-			byte[] bytes = Encoding.UTF8.GetBytes(content);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+		// Act - Write with async method 
+		await WriteTextAsync(key, false, content);
 
 		// First confirm the file exists
 		bool existsSync = _fileSystemBlobStore.Exists(key);
@@ -490,10 +460,18 @@ public class FileSystemBlobStoreTests
 	}
 
 	// Helper method to write text content to a blob
-	private async Task WriteTextAsync(string key, string content)
-		=> await _blobStore.WriteAsync(key, async (stream, ct) =>
+	private Task<bool> WriteTextAsync(string key, string content)
+		=> WriteTextAsync(key, false, content);
+
+	// Helper method to write text content to a blob with overwrite option
+	private async Task<bool> WriteTextAsync(string key, bool overwrite, string content)
+	{
+		bool success = await _blobStore.WriteAsync(key, overwrite, async (stream, ct) =>
 		{
 			byte[] bytes = Encoding.UTF8.GetBytes(content);
 			await stream.WriteAsync(bytes, ct);
 		}, CancellationToken.None);
+		
+		return success;
+	}
 }
