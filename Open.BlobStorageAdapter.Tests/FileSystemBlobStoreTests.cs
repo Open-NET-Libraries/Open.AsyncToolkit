@@ -22,7 +22,7 @@ namespace Open.BlobStorageAdapter.Tests
             _tempDirectory = Path.Combine(Path.GetTempPath(), $"BlobStoreTests_{Guid.NewGuid():N}");
             
             // Initialize the blob store using the static Create method
-            _fileSystemBlobStore = FileSystemBlobStore.Create(_tempDirectory);
+            _fileSystemBlobStore = FileSystemBlobStore.GetOrCreate(_tempDirectory);
             _blobStore = _fileSystemBlobStore;
         }
 
@@ -389,7 +389,7 @@ namespace Open.BlobStorageAdapter.Tests
         public async Task Create_ThrowsArgumentNullException_WhenBasePathIsNull()
         {
             // Act & Assert
-            await ((Action)(() => FileSystemBlobStore.Create(null!))).ThrowsAsync<ArgumentNullException>();
+            await ((Action)(() => FileSystemBlobStore.GetOrCreate(null!))).ThrowsAsync<ArgumentNullException>();
         }
 
         [Test]
