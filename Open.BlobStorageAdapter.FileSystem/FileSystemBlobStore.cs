@@ -193,7 +193,7 @@ public class FileSystemBlobStore : IBlobStore
 		CancellationToken cancellationToken = default)
 		=> WriteAsync(key, false, writeHandler, cancellationToken);
 
-	public ValueTask<bool> WriteAsync(
+	public ValueTask<bool> UpdateAsync(
 		string key,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
 		CancellationToken cancellationToken = default)
