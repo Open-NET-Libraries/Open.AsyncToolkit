@@ -35,7 +35,7 @@ namespace Open.BlobStorageAdapter.FileSystem
         /// <returns>A new FileSystemBlobStore instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown when basePath is null.</exception>
         /// <exception cref="IOException">Thrown when the directory cannot be created.</exception>
-        public static FileSystemBlobStore Create(string basePath)
+        public static FileSystemBlobStore GetOrCreate(string basePath)
         {
             if (basePath == null)
                 throw new ArgumentNullException(nameof(basePath));
