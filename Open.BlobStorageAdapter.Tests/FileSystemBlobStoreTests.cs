@@ -182,24 +182,6 @@ public class FileSystemBlobStoreTests
 		await Assert.That(existsAfter).IsFalse();
 	}
 
-	[Test]
-	public async Task GetBlob_ReturnsBlob_WithCorrectKey()
-	{
-		// Arrange
-		string key = "test-key";
-
-		// Act
-		Blob<string> blob = _blobStore.GetBlob(key);
-
-		// Assert
-		await Assert.That(blob).IsNotNull();
-		// Note: Blob.Key is a private field, we cannot directly test it
-		// Test indirectly by verifying the blob can be used with the given key
-		await WriteTextAsync(key, "Test content");
-		bool exists = await blob.ExistsAsync();
-		await Assert.That(exists).IsTrue();
-	}
-
 	// Synchronous method tests
 
 	[Test]
@@ -218,22 +200,27 @@ public class FileSystemBlobStoreTests
 	[Test]
 	public async Task Exists_ReturnsTrue_WhenBlobExists()
 	{
-		// Arrange
 		string key = "test-key-sync";
 		string content = "Hello, World!";
 
-		// Use synchronous Write method
-		_fileSystemBlobStore.Write(key, stream =>
+		bool written = await _fileSystemBlobStore.WriteAsync(key, false, async (stream, ct) =>
 		{
 			byte[] bytes = Encoding.UTF8.GetBytes(content);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+			await stream.WriteAsync(bytes, ct);
+		}, CancellationToken.None);
 
-		// Act
+		await Assert.That(written).IsTrue();
+
 		bool exists = _fileSystemBlobStore.Exists(key);
-
-		// Assert
 		await Assert.That(exists).IsTrue();
+
+		written = await _fileSystemBlobStore.WriteAsync(key, false, async (stream, ct) =>
+		{
+			byte[] bytes = Encoding.UTF8.GetBytes(content);
+			await stream.WriteAsync(bytes, ct);
+		}, CancellationToken.None);
+
+		await Assert.That(written).IsFalse();
 	}
 
 	[Test]
@@ -256,11 +243,13 @@ public class FileSystemBlobStoreTests
 		string key = "test-key-sync-read";
 		string expectedContent = "Hello, World Sync!";
 
-		_fileSystemBlobStore.Write(key, stream =>
+		bool written = await _fileSystemBlobStore.WriteAsync(key, false, async (stream, ct) =>
 		{
 			byte[] bytes = Encoding.UTF8.GetBytes(expectedContent);
-			stream.Write(bytes, 0, bytes.Length);
-		});
+			await stream.WriteAsync(bytes, ct);
+		}, CancellationToken.None);
+
+		await Assert.That(written).IsTrue();
 
 		// Act
 		using Stream? stream = _fileSystemBlobStore.Read(key);

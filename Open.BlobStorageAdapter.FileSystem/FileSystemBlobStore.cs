@@ -79,6 +79,23 @@ public class FileSystemBlobStore : IBlobStore
 	/// <remarks>
 	/// The caller is responsible for disposing the returned stream.
 	/// </remarks>
+	public Stream? Read(
+		string key)
+	{
+		string path = GetPath(key);
+
+		if (!File.Exists(path)) return null;
+
+		// Let any exceptions propagate to the caller
+		return new FileStream(
+			path,
+			FileMode.Open,
+			FileAccess.Read,
+			FileShare.Read,
+			bufferSize: 4096,
+			useAsync: true);
+	}
+
 	public bool TryRead(
 		string key,
 #if NETSTANDARD2_0
@@ -87,37 +104,10 @@ public class FileSystemBlobStore : IBlobStore
 #endif
 		out Stream? stream)
 	{
-		string path = GetPath(key);
-
-		if (!File.Exists(path)) goto failed;
-
-		try
-		{
-			stream = new FileStream(
-				path,
-				FileMode.Open,
-				FileAccess.Read,
-				FileShare.Read,
-				bufferSize: 4096,
-				useAsync: true);
-			return true;
-		}
-		catch (IOException)
-		{
-		}
-
-	failed:
-		stream = null;
-		return false;
+		stream = Read(key);
+		return stream is not null;
 	}
 
-	/// <summary>
-	/// Asynchronously writes content to a blob with the specified key.
-	/// </summary>
-	/// <param name="key">The blob key.</param>
-	/// <param name="writeHandler">A function that writes content to the provided stream.</param>
-	/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
 	/// <exception cref="ArgumentNullException">Thrown when key is null or empty, or writeHandler is null.</exception>
 	/// <exception cref="ArgumentException">Thrown when key contains invalid file system characters.</exception>
 	/// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
@@ -126,8 +116,10 @@ public class FileSystemBlobStore : IBlobStore
 	/// This method writes to a temporary file first and then atomically replaces the target file,
 	/// ensuring that readers always see a complete file.
 	/// </remarks>
-	public async ValueTask WriteAsync(
+	/// <inheritdoc />
+	public async ValueTask<bool> WriteAsync(
 		string key,
+		bool overwrite,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
 		CancellationToken cancellationToken = default)
 	{
@@ -146,6 +138,9 @@ public class FileSystemBlobStore : IBlobStore
 		string tempPath = Path.Combine(
 			Path.GetDirectoryName(path) ?? string.Empty,
 			$"{Path.GetFileNameWithoutExtension(path)}.{Guid.NewGuid():N}{Path.GetExtension(path)}");
+
+		if (!overwrite && File.Exists(path))
+			return false;
 
 		try
 		{
@@ -167,11 +162,17 @@ public class FileSystemBlobStore : IBlobStore
 
 			// Atomic replacement of the target file with the temporary file
 			if (File.Exists(path))
+			{
+				if (!overwrite)
+					return false;
+
 				File.Delete(path);
+			}
 
 			File.Move(tempPath, path);
+			return true;
 		}
-		catch
+		finally
 		{
 			// If an error occurs, attempt to delete the temporary file
 			try
@@ -183,33 +184,7 @@ public class FileSystemBlobStore : IBlobStore
 			{
 				// Ignore deletion errors on cleanup
 			}
-
-			throw;
 		}
-	}
-
-	/// <summary>
-	/// Writes content to a blob with the specified key.
-	/// </summary>
-	/// <param name="key">The blob key.</param>
-	/// <param name="writeAction">An action that writes content to the provided stream.</param>
-	/// <exception cref="ArgumentNullException">Thrown when key is null or empty, or writeAction is null.</exception>
-	/// <exception cref="ArgumentException">Thrown when key contains invalid file system characters.</exception>
-	/// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-	/// <remarks>
-	/// This is a synchronous wrapper around the asynchronous <see cref="WriteAsync"/> method.
-	/// </remarks>
-	public void Write(string key, Action<Stream> writeAction)
-	{
-		if (writeAction == null)
-			throw new ArgumentNullException(nameof(writeAction));
-
-		// Convert synchronous action to asynchronous function and call WriteAsync
-		WriteAsync(key, (stream, ct) =>
-		{
-			writeAction(stream);
-			return new ValueTask();
-		}).AsTask().GetAwaiter().GetResult();
 	}
 
 	/// <summary>
@@ -223,26 +198,26 @@ public class FileSystemBlobStore : IBlobStore
 	{
 		string path = GetPath(key);
 
-		if (File.Exists(path))
+		if (!File.Exists(path))
 		{
-			try
-			{
-				File.Delete(path);
-				return true;
-			}
-			catch
-			{
-				return false;
-			}
+			return false;
 		}
 
-		return false;
+		try
+		{
+			File.Delete(path);
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	// Explicit interface implementations
 
 	/// <inheritdoc />
-	ValueTask<bool> IBlobStore<string>.ExistsAsync(
+	ValueTask<bool> IReadBlobs<string>.ExistsAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
@@ -251,7 +226,7 @@ public class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	ValueTask<Stream?> IBlobStore<string>.ReadAsync(
+	ValueTask<Stream?> IReadBlobs<string>.ReadAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
@@ -261,7 +236,7 @@ public class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	ValueTask<bool> IBlobStore<string>.DeleteAsync(
+	ValueTask<bool> IDeleteBlobs<string>.DeleteAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
