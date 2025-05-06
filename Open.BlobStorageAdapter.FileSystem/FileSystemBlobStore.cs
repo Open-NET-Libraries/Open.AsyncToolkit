@@ -79,27 +79,36 @@ public class FileSystemBlobStore : IBlobStore
 	/// <remarks>
 	/// The caller is responsible for disposing the returned stream.
 	/// </remarks>
-	public Stream? Read(string key)
+	public bool TryRead(
+		string key,
+#if NETSTANDARD2_0
+#else
+		[System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+#endif
+		out Stream? stream)
 	{
 		string path = GetPath(key);
 
-		if (!File.Exists(path))
-			return null;
+		if (!File.Exists(path)) goto failed;
 
 		try
 		{
-			return new FileStream(
+			stream = new FileStream(
 				path,
 				FileMode.Open,
 				FileAccess.Read,
 				FileShare.Read,
 				bufferSize: 4096,
 				useAsync: true);
+			return true;
 		}
 		catch (IOException)
 		{
-			return null;
 		}
+
+	failed:
+		stream = null;
+		return false;
 	}
 
 	/// <summary>
@@ -247,7 +256,8 @@ public class FileSystemBlobStore : IBlobStore
 		CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		return new ValueTask<Stream?>(Read(key));
+		_ = TryRead(key, out var stream);
+		return new ValueTask<Stream?>(stream);
 	}
 
 	/// <inheritdoc />
