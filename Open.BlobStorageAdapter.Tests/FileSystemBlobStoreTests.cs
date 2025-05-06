@@ -3,6 +3,9 @@ using System.Text;
 
 namespace Open.BlobStorageAdapter.Tests;
 
+/// <summary>
+/// Tests for the <see cref="FileSystemBlobStore"/> class.
+/// </summary>
 public class FileSystemBlobStoreTests
 {
 	private string _tempDirectory = null!;
@@ -35,167 +38,30 @@ public class FileSystemBlobStoreTests
 		}
 	}
 
+	#region Exists Tests
+
+	// Async API
 	[Test]
 	public async Task ExistsAsync_ReturnsFalse_WhenBlobDoesNotExist()
 	{
-		// Arrange
-		string key = "nonexistent-key";
-
-		// Act
-		bool exists = await _blobStore.ExistsAsync(key);
-
-		// Assert
-		await Assert.That(exists).IsFalse();
+		await CheckBlobNotExists("nonexistent-key", useAsync: true);
 	}
 
 	[Test]
 	public async Task ExistsAsync_ReturnsTrue_WhenBlobExists()
 	{
-		// Arrange
 		string key = "test-key";
 		string content = "Hello, World!";
 
-		// Create a new blob (overwrite=false)
-		await WriteTextAsync(key, false, content);
-
-		// Act
-		bool exists = await _blobStore.ExistsAsync(key);
-
-		// Assert
-		await Assert.That(exists).IsTrue();
+		// Create a blob and verify existence
+		await CreateAndVerifyBlob(key, content, useAsync: true);
 	}
 
-	[Test]
-	public async Task ReadAsync_ReturnsNull_WhenBlobDoesNotExist()
-	{
-		// Arrange
-		string key = "nonexistent-key";
-
-		// Act
-		Stream? stream = await _blobStore.ReadAsync(key);
-
-		// Assert
-		await Assert.That(stream).IsNull();
-	}
-
-	[Test]
-	public async Task ReadAsync_ReturnsContent_WhenBlobExists()
-	{
-		// Arrange
-		string key = "test-key";
-		string expectedContent = "Hello, World!";
-
-		await WriteTextAsync(key, false, expectedContent);
-
-		// Act
-		using Stream? stream = await _blobStore.ReadAsync(key);
-
-		// Assert
-		await Assert.That(stream).IsNotNull();
-
-		using StreamReader reader = new(stream!);
-		string actualContent = await reader.ReadToEndAsync();
-
-		await Assert.That(actualContent).IsEqualTo(expectedContent);
-	}
-
-	[Test]
-	public async Task WriteAsync_CreatesBlob_WhenBlobDoesNotExist()
-	{
-		// Arrange
-		string key = "new-key";
-		string content = "New content";
-
-		// Act
-		await WriteTextAsync(key, content);
-
-		// Assert
-		bool exists = await _blobStore.ExistsAsync(key);
-		await Assert.That(exists).IsTrue();
-
-		// Verify content
-		using Stream? stream = await _blobStore.ReadAsync(key);
-		await Assert.That(stream).IsNotNull();
-
-		using StreamReader reader = new(stream!);
-		string actualContent = await reader.ReadToEndAsync();
-
-		await Assert.That(actualContent).IsEqualTo(content);
-	}
-
-	[Test]
-	public async Task WriteAsync_OverwritesBlob_WhenBlobExists()
-	{
-		// Arrange
-		string key = "existing-key";
-		string initialContent = "Initial content";
-		string updatedContent = "Updated content";
-
-		// Write initial content with overwrite=false (new file)
-		await WriteTextAsync(key, false, initialContent);
-
-		// Act - Overwrite with updated content - must set overwrite=true
-		await WriteTextAsync(key, true, updatedContent);
-
-		// Assert
-		using Stream? stream = await _blobStore.ReadAsync(key);
-		await Assert.That(stream).IsNotNull();
-
-		using StreamReader reader = new(stream!);
-		string actualContent = await reader.ReadToEndAsync();
-
-		await Assert.That(actualContent).IsEqualTo(updatedContent);
-	}
-
-	[Test]
-	public async Task DeleteAsync_ReturnsFalse_WhenBlobDoesNotExist()
-	{
-		// Arrange
-		string key = "nonexistent-key";
-
-		// Act
-		bool result = await _blobStore.DeleteAsync(key);
-
-		// Assert
-		await Assert.That(result).IsFalse();
-	}
-
-	[Test]
-	public async Task DeleteAsync_ReturnsTrueAndDeletesBlob_WhenBlobExists()
-	{
-		// Arrange
-		string key = "test-key";
-		string content = "Hello, World!";
-
-		await WriteTextAsync(key, content);
-
-		// Verify blob exists before deletion
-		bool existsBefore = await _blobStore.ExistsAsync(key);
-		await Assert.That(existsBefore).IsTrue();
-
-		// Act
-		bool result = await _blobStore.DeleteAsync(key);
-
-		// Assert
-		await Assert.That(result).IsTrue();
-
-		bool existsAfter = await _blobStore.ExistsAsync(key);
-		await Assert.That(existsAfter).IsFalse();
-	}
-
-	// Synchronous method tests
-
+	// Sync API
 	[Test]
 	public async Task Exists_ReturnsFalse_WhenBlobDoesNotExist()
 	{
-		// Arrange
-		string key = "nonexistent-key-sync";
-
-		// Act
-		bool exists = _fileSystemBlobStore.Exists(key);
-
-		// Assert
-		await Assert.That(exists).IsFalse();
+		await CheckBlobNotExists("nonexistent-key-sync", useAsync: false);
 	}
 
 	[Test]
@@ -204,134 +70,135 @@ public class FileSystemBlobStoreTests
 		string key = "test-key-sync";
 		string content = "Hello, World!";
 
-		// Create a new blob (overwrite=false)
-		bool written = await WriteTextAsync(key, false, content);
+		// Create a blob and verify existence
+		bool written = await CreateAndVerifyBlob(key, content, useAsync: false);
 		await Assert.That(written).IsTrue();
 
-		bool exists = _fileSystemBlobStore.Exists(key);
-		await Assert.That(exists).IsTrue();
+		// Additional test for sync API: Try to write again without overwrite
+		bool writtenAgain = await WriteTextAsync(key, false, content);
+		await Assert.That(writtenAgain).IsFalse();
+	}
 
-		// Try to write again without overwrite
-		written = await WriteTextAsync(key, false, content);
-		await Assert.That(written).IsFalse();
+	#endregion
+
+	#region Read Tests
+
+	// Async API
+	[Test]
+	public async Task ReadAsync_ReturnsNull_WhenBlobDoesNotExist()
+	{
+		await CheckReadReturnsNull("nonexistent-key", useAsync: true);
 	}
 
 	[Test]
+	public async Task ReadAsync_ReturnsContent_WhenBlobExists()
+	{
+		string key = "test-key";
+		string expectedContent = "Hello, World!";
+
+		await CreateAndReadBlob(key, expectedContent, useAsync: true);
+	}
+
+	// Sync API
+	[Test]
 	public async Task Read_ReturnsNull_WhenBlobDoesNotExist()
 	{
-		// Arrange
-		string key = "nonexistent-key-sync";
-
-		// Act
-		Stream? stream = _fileSystemBlobStore.Read(key);
-
-		// Assert
-		await Assert.That(stream).IsNull();
+		await CheckReadReturnsNull("nonexistent-key-sync", useAsync: false);
 	}
 
 	[Test]
 	public async Task Read_ReturnsContent_WhenBlobExists()
 	{
-		// Arrange
 		string key = "test-key-sync-read";
 		string expectedContent = "Hello, World Sync!";
 
-		// Create a blob with overwrite=false
-		await WriteTextAsync(key, false, expectedContent);
+		await CreateAndReadBlob(key, expectedContent, useAsync: false);
+	}
 
-		// Act
-		using Stream? stream = _fileSystemBlobStore.Read(key);
+	#endregion
 
-		// Assert
-		await Assert.That(stream).IsNotNull();
+	#region Write Tests
 
-		using StreamReader reader = new(stream!);
-		string actualContent = reader.ReadToEnd();
+	// Async API
+	[Test]
+	public async Task WriteAsync_CreatesBlob_WhenBlobDoesNotExist()
+	{
+		string key = "new-key";
+		string content = "New content";
 
-		await Assert.That(actualContent).IsEqualTo(expectedContent);
+		await WriteAndVerifyContent(key, content, useAsync: true);
 	}
 
 	[Test]
+	public async Task WriteAsync_OverwritesBlob_WhenBlobExists()
+	{
+		string key = "existing-key";
+		string initialContent = "Initial content";
+		string updatedContent = "Updated content";
+
+		await VerifyOverwrite(key, initialContent, updatedContent, useAsync: true);
+	}
+
+	// Sync API
+	[Test]
 	public async Task Write_CreatesBlob_WhenBlobDoesNotExist()
 	{
-		// Arrange
 		string key = "new-key-sync";
 		string content = "New content sync";
 
-		// Act
-		await WriteTextAsync(key, false, content);
-
-		// Assert
-		await Assert.That(_fileSystemBlobStore.Exists(key)).IsTrue();
-
-		// Verify content
-		using Stream? stream = _fileSystemBlobStore.Read(key);
-		await Assert.That(stream).IsNotNull();
-
-		using StreamReader reader = new(stream!);
-		string actualContent = reader.ReadToEnd();
-
-		await Assert.That(actualContent).IsEqualTo(content);
+		await WriteAndVerifyContent(key, content, useAsync: false);
 	}
 
 	[Test]
 	public async Task Write_OverwritesBlob_WhenBlobExists()
 	{
-		// Arrange
 		string key = "existing-key-sync";
 		string initialContent = "Initial content sync";
 		string updatedContent = "Updated content sync";
 
-		// Write initial content
-		await WriteTextAsync(key, false, initialContent);
+		await VerifyOverwrite(key, initialContent, updatedContent, useAsync: false);
+	}
 
-		// Act - Overwrite with updated content
-		await WriteTextAsync(key, true, updatedContent);
+	#endregion
 
-		// Assert
-		using Stream? stream = _fileSystemBlobStore.Read(key);
-		await Assert.That(stream).IsNotNull();
+	#region Delete Tests
 
-		using StreamReader reader = new(stream!);
-		string actualContent = reader.ReadToEnd();
-
-		await Assert.That(actualContent).IsEqualTo(updatedContent);
+	// Async API
+	[Test]
+	public async Task DeleteAsync_ReturnsFalse_WhenBlobDoesNotExist()
+	{
+		await CheckDeleteReturnsExpectedResult("nonexistent-key", expected: false, useAsync: true);
 	}
 
 	[Test]
+	public async Task DeleteAsync_ReturnsTrueAndDeletesBlob_WhenBlobExists()
+	{
+		string key = "test-key";
+		string content = "Hello, World!";
+
+		await VerifyDeleteRemovesBlob(key, content, useAsync: true);
+	}
+
+	// Sync API
+	[Test]
 	public async Task Delete_ReturnsFalse_WhenBlobDoesNotExist()
 	{
-		// Arrange
-		string key = "nonexistent-key-sync";
-
-		// Act
-		bool result = _fileSystemBlobStore.Delete(key);
-
-		// Assert
-		await Assert.That(result).IsFalse();
+		await CheckDeleteReturnsExpectedResult("nonexistent-key-sync", expected: false, useAsync: false);
 	}
 
 	[Test]
 	public async Task Delete_ReturnsTrueAndDeletesBlob_WhenBlobExists()
 	{
-		// Arrange
 		string key = "test-key-sync-delete";
 		string content = "Hello, World Sync Delete!";
 
-		await WriteTextAsync(key, false, content);
-
-		// Verify blob exists before deletion
-		await Assert.That(_fileSystemBlobStore.Exists(key)).IsTrue();
-
-		// Act
-		bool result = _fileSystemBlobStore.Delete(key);
-
-		// Assert
-		await Assert.That(result).IsTrue();
-		await Assert.That(_fileSystemBlobStore.Exists(key)).IsFalse();
+		await VerifyDeleteRemovesBlob(key, content, useAsync: false);
 	}
 
-	// Additional tests for edge cases and validation
+	#endregion
+
+	#region Exception Tests
+
 	[Test]
 	public async Task Create_ThrowsArgumentNullException_WhenBasePathIsNull()
 		// Act & Assert
@@ -339,27 +206,19 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenKeyIsNull()
-		// Act & Assert
-		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(null!, false, (stream, ct) => new ValueTask(), CancellationToken.None)))
-			.ThrowsAsync<ArgumentNullException>();
+		=> await CheckArgumentNullException(true, isKeyNull: true);
 
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenWriteActionIsNull()
-		// Act & Assert
-		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync("key", false, null!, CancellationToken.None)))
-			.ThrowsAsync<ArgumentNullException>();
+		=> await CheckArgumentNullException(true, isKeyNull: false);
 
 	[Test]
 	public async Task WriteAsync_ThrowsArgumentNullException_WhenKeyIsNull()
-		// Act & Assert
-		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync(null!, false, (s, ct) => new ValueTask())))
-			.ThrowsAsync<ArgumentNullException>();
+		=> await CheckArgumentNullException(false, isKeyNull: true);
 
 	[Test]
 	public async Task WriteAsync_ThrowsArgumentNullException_WhenWriteHandlerIsNull()
-		// Act & Assert
-		=> await ((Func<Task>)(async () => await _fileSystemBlobStore.WriteAsync("key", false, null!)))
-			.ThrowsAsync<ArgumentNullException>();
+		=> await CheckArgumentNullException(false, isKeyNull: false);
 
 	[Test]
 	public async Task GetPath_ThrowsArgumentException_WhenKeyContainsInvalidChars()
@@ -386,6 +245,8 @@ public class FileSystemBlobStoreTests
 			await Task.CompletedTask;
 		}, cts.Token))).ThrowsAsync<OperationCanceledException>();
 	}
+
+	#endregion
 
 	[Test]
 	public async Task SyncAndAsyncMethods_CanInteroperate()
@@ -459,6 +320,8 @@ public class FileSystemBlobStoreTests
 		await Assert.That(existsAfterAsync).IsFalse();
 	}
 
+	#region Helper Methods
+
 	// Helper method to write text content to a blob
 	private Task<bool> WriteTextAsync(string key, string content)
 		=> WriteTextAsync(key, false, content);
@@ -474,4 +337,192 @@ public class FileSystemBlobStoreTests
 		
 		return success;
 	}
+
+	// Helper method to check existence of a blob
+	private async Task<bool> CheckBlobNotExists(string key, bool useAsync)
+	{
+		// Act
+		bool exists = useAsync 
+			? await _blobStore.ExistsAsync(key) 
+			: _fileSystemBlobStore.Exists(key);
+
+		// Assert
+		await Assert.That(exists).IsFalse();
+		return exists;
+	}
+
+	// Helper method to create and verify blob existence
+	private async Task<bool> CreateAndVerifyBlob(string key, string content, bool useAsync)
+	{
+		// Create a new blob (overwrite=false)
+		bool written = await WriteTextAsync(key, false, content);
+		
+		// Act
+		bool exists = useAsync
+			? await _blobStore.ExistsAsync(key)
+			: _fileSystemBlobStore.Exists(key);
+
+		// Assert
+		await Assert.That(exists).IsTrue();
+		return written;
+	}
+
+	// Helper method to check that read returns null for non-existent blobs
+	private async Task CheckReadReturnsNull(string key, bool useAsync)
+	{
+		// Act
+		Stream? stream = useAsync
+			? await _blobStore.ReadAsync(key)
+			: _fileSystemBlobStore.Read(key);
+
+		// Assert
+		await Assert.That(stream).IsNull();
+	}
+
+	// Helper method to create a blob and verify its content
+	private async Task CreateAndReadBlob(string key, string expectedContent, bool useAsync)
+	{
+		// Arrange - Create a blob with overwrite=false
+		await WriteTextAsync(key, false, expectedContent);
+
+		// Act
+		using Stream? stream = useAsync
+			? await _blobStore.ReadAsync(key)
+			: _fileSystemBlobStore.Read(key);
+
+		// Assert
+		await Assert.That(stream).IsNotNull();
+
+		using StreamReader reader = new(stream!);
+		string actualContent = useAsync
+			? await reader.ReadToEndAsync()
+			: reader.ReadToEnd();
+
+		await Assert.That(actualContent).IsEqualTo(expectedContent);
+	}
+
+	// Helper method to write content and verify it exists with correct content
+	private async Task WriteAndVerifyContent(string key, string content, bool useAsync)
+	{
+		// Act
+		await WriteTextAsync(key, false, content);
+
+		// Assert - Check existence
+		bool exists = useAsync
+			? await _blobStore.ExistsAsync(key)
+			: _fileSystemBlobStore.Exists(key);
+		await Assert.That(exists).IsTrue();
+
+		// Verify content
+		using Stream? stream = useAsync
+			? await _blobStore.ReadAsync(key)
+			: _fileSystemBlobStore.Read(key);
+		await Assert.That(stream).IsNotNull();
+
+		using StreamReader reader = new(stream!);
+		string actualContent = useAsync
+			? await reader.ReadToEndAsync()
+			: reader.ReadToEnd();
+
+		await Assert.That(actualContent).IsEqualTo(content);
+	}
+
+	// Helper method to verify overwrite behavior
+	private async Task VerifyOverwrite(string key, string initialContent, string updatedContent, bool useAsync)
+	{
+		// Arrange - Write initial content
+		await WriteTextAsync(key, false, initialContent);
+
+		// Act - Overwrite with updated content
+		await WriteTextAsync(key, true, updatedContent);
+
+		// Assert
+		using Stream? stream = useAsync
+			? await _blobStore.ReadAsync(key)
+			: _fileSystemBlobStore.Read(key);
+		await Assert.That(stream).IsNotNull();
+
+		using StreamReader reader = new(stream!);
+		string actualContent = useAsync
+			? await reader.ReadToEndAsync()
+			: reader.ReadToEnd();
+
+		await Assert.That(actualContent).IsEqualTo(updatedContent);
+	}
+
+	// Helper method to verify delete returns expected result
+	private async Task<bool> CheckDeleteReturnsExpectedResult(string key, bool expected, bool useAsync)
+	{
+		// Act
+		bool result = useAsync
+			? await _blobStore.DeleteAsync(key)
+			: _fileSystemBlobStore.Delete(key);
+
+		// Assert
+		await Assert.That(result).IsEqualTo(expected);
+		return result;
+	}
+
+	// Helper method to verify delete correctly removes a blob
+	private async Task VerifyDeleteRemovesBlob(string key, string content, bool useAsync)
+	{
+		// Arrange - Create a blob
+		await WriteTextAsync(key, false, content);
+
+		// Verify blob exists before deletion
+		bool existsBefore = useAsync
+			? await _blobStore.ExistsAsync(key)
+			: _fileSystemBlobStore.Exists(key);
+		await Assert.That(existsBefore).IsTrue();
+
+		// Act
+		bool result = useAsync
+			? await _blobStore.DeleteAsync(key)
+			: _fileSystemBlobStore.Delete(key);
+
+		// Assert
+		await Assert.That(result).IsTrue();
+
+		bool existsAfter = useAsync
+			? await _blobStore.ExistsAsync(key)
+			: _fileSystemBlobStore.Exists(key);
+		await Assert.That(existsAfter).IsFalse();
+	}
+
+	// Helper method to check ArgumentNullException
+	private async Task CheckArgumentNullException(bool withCt, bool isKeyNull)
+	{
+		if (withCt)
+		{
+			if (isKeyNull)
+			{
+				await ((Func<Task>)(async () => 
+					await _fileSystemBlobStore.WriteAsync(null!, false, (stream, ct) => new ValueTask(), CancellationToken.None)))
+					.ThrowsAsync<ArgumentNullException>();
+			}
+			else
+			{
+				await ((Func<Task>)(async () => 
+					await _fileSystemBlobStore.WriteAsync("key", false, null!, CancellationToken.None)))
+					.ThrowsAsync<ArgumentNullException>();
+			}
+		}
+		else
+		{
+			if (isKeyNull)
+			{
+				await ((Func<Task>)(async () => 
+					await _fileSystemBlobStore.WriteAsync(null!, false, (s, ct) => new ValueTask())))
+					.ThrowsAsync<ArgumentNullException>();
+			}
+			else
+			{
+				await ((Func<Task>)(async () => 
+					await _fileSystemBlobStore.WriteAsync("key", false, null!)))
+					.ThrowsAsync<ArgumentNullException>();
+			}
+		}
+	}
+
+	#endregion
 }
