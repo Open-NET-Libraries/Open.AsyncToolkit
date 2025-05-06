@@ -8,6 +8,10 @@ namespace Open.BlobStorageAdapter;
 public interface ICreateBlobs<TKey> : ICreateAsync<TKey, Stream>
 	where TKey : notnull
 {
+	ValueTask<bool> CreateAsync(
+		TKey key,
+		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken = default);
 }
 
 /// <summary>

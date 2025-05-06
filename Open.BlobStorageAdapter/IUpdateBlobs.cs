@@ -6,6 +6,10 @@
 public interface IUpdateBlobs<TKey>
 	where TKey : notnull
 {
+	ValueTask<bool> UpdateAsync(
+		TKey key,
+		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken = default);
 }
 
 /// <summary>

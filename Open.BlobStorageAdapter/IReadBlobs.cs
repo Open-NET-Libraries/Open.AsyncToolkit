@@ -1,4 +1,6 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿using Open.BlobStorageAdapter.AsyncItem;
+
+namespace Open.BlobStorageAdapter;
 public interface IReadBlobs<TKey> : IReadAsync<TKey, Stream>
 	where TKey : notnull;
 

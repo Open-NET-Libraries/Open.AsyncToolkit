@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.BlobStorageAdapter.AsyncItem;
 public interface IReadAsync<TKey, TValue>
 {
 	/// <summary>

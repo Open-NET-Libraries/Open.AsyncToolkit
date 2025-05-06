@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.BlobStorageAdapter.AsyncItem;
 
 public interface IUpdateAsync<TKey, TValue>
 	where TKey : notnull
@@ -12,6 +12,6 @@ public interface IUpdateAsync<TKey, TValue>
 	/// <returns><see langword="true"/> if the blob was stored; otherwise <see langword="false"/>.</returns>
 	ValueTask<bool> UpdateAsync(
 		TKey key,
-		Func<TValue, CancellationToken, ValueTask> writeHandler,
+		TValue value,
 		CancellationToken cancellationToken = default);
 }
