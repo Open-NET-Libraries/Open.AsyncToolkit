@@ -11,6 +11,11 @@ public class FileSystemBlobStoreTests
 	private string _tempDirectory = null!;
 	private IBlobStore _blobStore = null!;
 	private FileSystemBlobStore _fileSystemBlobStore = null!;
+	
+	// Common test data
+	private const string StandardContent = "Hello, World!";
+	private const string SyncContent = "Hello, World Sync!";
+	private const string UpdatedContent = "Updated content";
 
 	[Before(Test)]
 	public void Setup()
@@ -47,13 +52,7 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task ExistsAsync_ReturnsTrue_WhenBlobExists()
-	{
-		string key = "test-key";
-		string content = "Hello, World!";
-
-		// Create a blob and verify existence
-		await CreateAndVerifyBlob(key, content, useAsync: true);
-	}
+		=> await CreateAndVerifyBlob("test-key", StandardContent, useAsync: true);
 
 	// Sync API
 	[Test]
@@ -64,14 +63,13 @@ public class FileSystemBlobStoreTests
 	public async Task Exists_ReturnsTrue_WhenBlobExists()
 	{
 		string key = "test-key-sync";
-		string content = "Hello, World!";
-
+		
 		// Create a blob and verify existence
-		bool written = await CreateAndVerifyBlob(key, content, useAsync: false);
+		bool written = await CreateAndVerifyBlob(key, StandardContent, useAsync: false);
 		await Assert.That(written).IsTrue();
 
 		// Additional test for sync API: Try to write again without overwrite
-		bool writtenAgain = await WriteTextAsync(key, false, content);
+		bool writtenAgain = await WriteTextAsync(key, false, StandardContent);
 		await Assert.That(writtenAgain).IsFalse();
 	}
 
@@ -86,12 +84,7 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task ReadAsync_ReturnsContent_WhenBlobExists()
-	{
-		string key = "test-key";
-		string expectedContent = "Hello, World!";
-
-		await CreateAndReadBlob(key, expectedContent, useAsync: true);
-	}
+		=> await CreateAndReadBlob("test-key", StandardContent, useAsync: true);
 
 	// Sync API
 	[Test]
@@ -100,12 +93,7 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task Read_ReturnsContent_WhenBlobExists()
-	{
-		string key = "test-key-sync-read";
-		string expectedContent = "Hello, World Sync!";
-
-		await CreateAndReadBlob(key, expectedContent, useAsync: false);
-	}
+		=> await CreateAndReadBlob("test-key-sync-read", SyncContent, useAsync: false);
 
 	#endregion
 
@@ -114,42 +102,20 @@ public class FileSystemBlobStoreTests
 	// Async API
 	[Test]
 	public async Task WriteAsync_CreatesBlob_WhenBlobDoesNotExist()
-	{
-		string key = "new-key";
-		string content = "New content";
-
-		await WriteAndVerifyContent(key, content, useAsync: true);
-	}
+		=> await WriteAndVerifyContent("new-key", "New content", useAsync: true);
 
 	[Test]
 	public async Task WriteAsync_OverwritesBlob_WhenBlobExists()
-	{
-		string key = "existing-key";
-		string initialContent = "Initial content";
-		string updatedContent = "Updated content";
-
-		await VerifyOverwrite(key, initialContent, updatedContent, useAsync: true);
-	}
+		=> await VerifyOverwrite("existing-key", StandardContent, UpdatedContent, useAsync: true);
 
 	// Sync API
 	[Test]
 	public async Task Write_CreatesBlob_WhenBlobDoesNotExist()
-	{
-		string key = "new-key-sync";
-		string content = "New content sync";
-
-		await WriteAndVerifyContent(key, content, useAsync: false);
-	}
+		=> await WriteAndVerifyContent("new-key-sync", "New content sync", useAsync: false);
 
 	[Test]
 	public async Task Write_OverwritesBlob_WhenBlobExists()
-	{
-		string key = "existing-key-sync";
-		string initialContent = "Initial content sync";
-		string updatedContent = "Updated content sync";
-
-		await VerifyOverwrite(key, initialContent, updatedContent, useAsync: false);
-	}
+		=> await VerifyOverwrite("existing-key-sync", StandardContent, UpdatedContent, useAsync: false);
 
 	#endregion
 
@@ -162,12 +128,7 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task DeleteAsync_ReturnsTrueAndDeletesBlob_WhenBlobExists()
-	{
-		string key = "test-key";
-		string content = "Hello, World!";
-
-		await VerifyDeleteRemovesBlob(key, content, useAsync: true);
-	}
+		=> await VerifyDeleteRemovesBlob("test-key", StandardContent, useAsync: true);
 
 	// Sync API
 	[Test]
@@ -176,12 +137,7 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task Delete_ReturnsTrueAndDeletesBlob_WhenBlobExists()
-	{
-		string key = "test-key-sync-delete";
-		string content = "Hello, World Sync Delete!";
-
-		await VerifyDeleteRemovesBlob(key, content, useAsync: false);
-	}
+		=> await VerifyDeleteRemovesBlob("test-key-sync-delete", SyncContent, useAsync: false);
 
 	#endregion
 
@@ -194,19 +150,19 @@ public class FileSystemBlobStoreTests
 
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenKeyIsNull()
-		=> await CheckArgumentNullException(true, isKeyNull: true);
+		=> await CheckArgumentNullException(withCt: true, isKeyNull: true);
 
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenWriteActionIsNull()
-		=> await CheckArgumentNullException(true, isKeyNull: false);
+		=> await CheckArgumentNullException(withCt: true, isKeyNull: false);
 
 	[Test]
 	public async Task WriteAsync_ThrowsArgumentNullException_WhenKeyIsNull()
-		=> await CheckArgumentNullException(false, isKeyNull: true);
+		=> await CheckArgumentNullException(withCt: false, isKeyNull: true);
 
 	[Test]
 	public async Task WriteAsync_ThrowsArgumentNullException_WhenWriteHandlerIsNull()
-		=> await CheckArgumentNullException(false, isKeyNull: false);
+		=> await CheckArgumentNullException(withCt: false, isKeyNull: false);
 
 	[Test]
 	public async Task GetPath_ThrowsArgumentException_WhenKeyContainsInvalidChars()

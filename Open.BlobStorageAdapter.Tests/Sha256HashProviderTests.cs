@@ -9,6 +9,16 @@ namespace Open.BlobStorageAdapter.Tests;
 public class Sha256HashProviderTests
 {
     private Sha256HashProvider _hashProvider = null!;
+    
+    // Known hash test values
+    private static readonly byte[] EmptyData = Array.Empty<byte>();
+    private static readonly string EmptyDataHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    
+    private static readonly string SimpleDataText = "test data";
+    private static readonly byte[] SimpleData = Encoding.UTF8.GetBytes(SimpleDataText);
+    private static readonly string SimpleDataHash = "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9";
+    
+    private const int LargeDataSize = 1024 * 1024; // 1MB
 
     [Before(Test)]
     public void Setup()
@@ -19,33 +29,21 @@ public class Sha256HashProviderTests
     [Test]
     public async Task ComputeHash_ReturnsCorrectHash_ForEmptyData()
     {
-        // Arrange
-        var emptyData = Array.Empty<byte>();
-        
-        // Expected hash for empty data (SHA-256)
-        var expectedHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        
         // Act
-        var hash = _hashProvider.ComputeHash(emptyData);
+        var hash = _hashProvider.ComputeHash(EmptyData);
         
         // Assert
-        await Assert.That(hash).IsEqualTo(expectedHash);
+        await Assert.That(hash).IsEqualTo(EmptyDataHash);
     }
 
     [Test]
     public async Task ComputeHash_ReturnsCorrectHash_ForSimpleData()
     {
-        // Arrange
-        var data = Encoding.UTF8.GetBytes("test data");
-        
-        // Expected hash for "test data" (SHA-256)
-        var expectedHash = "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9";
-        
         // Act
-        var hash = _hashProvider.ComputeHash(data);
+        var hash = _hashProvider.ComputeHash(SimpleData);
         
         // Assert
-        await Assert.That(hash).IsEqualTo(expectedHash);
+        await Assert.That(hash).IsEqualTo(SimpleDataHash);
     }
 
     [Test]
@@ -82,7 +80,7 @@ public class Sha256HashProviderTests
     public async Task ComputeHash_HandlesLargeData()
     {
         // Arrange
-        var largeData = new byte[1024 * 1024]; // 1MB
+        var largeData = new byte[LargeDataSize];
         new Random(42).NextBytes(largeData); // Fill with random data
         
         // Act - should not throw exceptions or have memory issues
