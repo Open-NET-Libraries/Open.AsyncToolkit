@@ -1,6 +1,6 @@
 namespace Open.BlobStorageAdapter.AsyncItem;
 
-public interface ICreateAndUpdate<TKey, TValue> : ICreateAsync<TKey, TValue>, IUpdateAsync<TKey, TValue>
+public interface ICreateOrUpdate<TKey, TValue>
 	where TKey : notnull
 {
 	/// <summary>

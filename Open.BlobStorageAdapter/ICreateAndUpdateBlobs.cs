@@ -1,6 +1,5 @@
 ﻿namespace Open.BlobStorageAdapter;
 public interface ICreateAndUpdateBlobs<TKey>
-	: ICreateBlobs<TKey>, IUpdateBlobs<TKey>
 	where TKey : notnull
 {
 	ValueTask<bool> CreateOrUpdateAsync(
