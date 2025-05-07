@@ -6,7 +6,7 @@
 /// <typeparam name="TKey">
 /// The type of key used to identify items.
 /// </typeparam>
-public interface IDeleteAsync<TKey>
+public interface IDeleteAsync<in TKey>
 	where TKey : notnull
 {
 	/// <summary>

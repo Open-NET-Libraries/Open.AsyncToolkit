@@ -7,7 +7,7 @@
 /// The type of key used to identify items.
 /// </typeparam>
 /// <typeparam name="TValue">The type of values to store.</typeparam>
-public interface ICreateAsync<TKey, TValue>
+public interface ICreateAsync<in TKey, in TValue>
 	where TKey : notnull
 {
 	/// <summary>

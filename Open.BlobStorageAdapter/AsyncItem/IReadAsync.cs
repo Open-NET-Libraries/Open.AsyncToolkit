@@ -7,7 +7,7 @@
 /// The type of key used to identify items.
 /// </typeparam>
 /// <typeparam name="TValue">The type of values stored.</typeparam>
-public interface IReadAsync<TKey, TValue>
+public interface IReadAsync<in TKey, TValue>
 {
 	/// <summary>
 	/// Checks if an entry with the specified key exists.

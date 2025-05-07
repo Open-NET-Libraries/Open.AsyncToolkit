@@ -7,7 +7,7 @@ namespace Open.BlobStorageAdapter.AsyncItem;
 /// The type of key used to identify items.
 /// </typeparam>
 /// <typeparam name="TValue">The type of values to store.</typeparam>
-public interface ICreateOrUpdate<TKey, TValue>
+public interface ICreateOrUpdate<in TKey, in TValue>
 	where TKey : notnull
 {
 	/// <summary>

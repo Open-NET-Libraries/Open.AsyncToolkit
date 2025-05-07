@@ -10,35 +10,35 @@ namespace Open.BlobStorageAdapter;
 /// </summary>
 public class HashedBlobRepository(
 	IBlobRepo<Guid> blobStore,
-	IAsyncDictionary<string, IReadOnlyCollection<Guid>> hashMap,
+	ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> hashMap,
 	IHashProvider hashProvider)
 	: IIdempotentRepository<Guid>
 {
-    /// <inheritdoc />
-    /// <exception cref="KeyNotFoundException">
-    /// Thrown when the specified key is not found in the repository.
-    /// </exception>
+	/// <inheritdoc />
+	/// <exception cref="KeyNotFoundException">
+	/// Thrown when the specified key is not found in the repository.
+	/// </exception>
 	public async ValueTask<Stream> Get(
-		Guid key, 
+		Guid key,
 		CancellationToken cancellationToken = default)
 		=> await blobStore.ReadAsync(key, cancellationToken)
 			.ConfigureAwait(false)
 		   ?? throw new KeyNotFoundException($"Key [{key}] not found.");
 
-    /// <inheritdoc />
+	/// <inheritdoc />
 	public ValueTask<Guid> Put(
 		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default)
-		=> hashMap.Lease(
+		=> hashMap.LeaseAsync(
 			hashProvider.ComputeHash(data.Span),
 			cancellationToken,
 			async (entry, ct) =>
 			{
 				ct.ThrowIfCancellationRequested();
 
-				var guids = await entry.Read() 
+				var guids = await entry.Read()
 					?? FrozenSet<Guid>.Empty;
-				
+
 				if (guids.Count > 0)
 				{
 					IMemoryOwner<byte>? lease = null;
@@ -86,20 +86,20 @@ public class HashedBlobRepository(
 				return newGuid;
 			});
 
-    /// <summary>
-    /// Compares a byte array with a stream's content to determine 
-    /// if they are identical.
-    /// </summary>
-    /// <param name="data">The source data to compare.</param>
-    /// <param name="stream">The stream containing data to compare.</param>
-    /// <param name="buffer">A buffer to use for reading from the stream.</param>
-    /// <returns>
-    /// <see langword="true"/> if the data matches;
-    /// otherwise <see langword="false"/>.
-    /// </returns>
+	/// <summary>
+	/// Compares a byte array with a stream's content to determine 
+	/// if they are identical.
+	/// </summary>
+	/// <param name="data">The source data to compare.</param>
+	/// <param name="stream">The stream containing data to compare.</param>
+	/// <param name="buffer">A buffer to use for reading from the stream.</param>
+	/// <returns>
+	/// <see langword="true"/> if the data matches;
+	/// otherwise <see langword="false"/>.
+	/// </returns>
 	private static async ValueTask<bool> IsSame(
-		ReadOnlyMemory<byte> data, 
-		Stream stream, 
+		ReadOnlyMemory<byte> data,
+		Stream stream,
 		Memory<byte> buffer)
 	{
 		int totalRead = 0;

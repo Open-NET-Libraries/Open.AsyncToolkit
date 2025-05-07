@@ -19,7 +19,7 @@ public class HashedBlobRepositoryTests
 	private static readonly string TestHash = HashProvider.ComputeHash(StandardTestData.Span);
 
 	private IBlobRepo<Guid> _blobRepo = default!;
-	private IAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = default!;
+	private ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = default!;
 
 	private AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry = default!;
 	private HashedBlobRepository _repository = default!;
@@ -29,7 +29,7 @@ public class HashedBlobRepositoryTests
 	{
 		// Create the mock dependencies using NSubstitute
 		_blobRepo = Substitute.For<IBlobRepo<Guid>>();
-		_hashMap = Substitute.For<IAsyncDictionary<string, IReadOnlyCollection<Guid>>>();
+		_hashMap = Substitute.For<ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>>>();
 
 		// Set up the AsyncDictionaryEntry mock
 		_asyncDictionaryEntry = Substitute.For<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>>(
@@ -38,10 +38,10 @@ public class HashedBlobRepositoryTests
 		// Set up Lease method to invoke the callback with the entry
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA2012 // Use ValueTasks correctly
-		_hashMap.Lease(
+		_hashMap.LeaseAsync(
 			Arg.Any<string>(),
 			Arg.Any<CancellationToken>(),
-			Arg.Any<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
+			Arg.Any<Func<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
 			.Returns(callInfo =>
 			{
 				Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>> callback = callInfo.ArgAt<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>(2);
