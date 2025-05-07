@@ -3,18 +3,26 @@ using Open.BlobStorageAdapter.AsyncItem;
 namespace Open.BlobStorageAdapter;
 
 /// <summary>
-/// Defines operations for storing and retrieving binary data (blobs) with a generic key type.
+/// Defines operations for storing and retrieving binary data (blobs) 
+/// with a generic key type.
 /// </summary>
-/// <typeparam name="TKey">The type of key used to identify blobs in the store.</typeparam>
+/// <typeparam name="TKey">
+/// The type of key used to identify blobs in the store.
+/// </typeparam>
 public interface IBlobStore<TKey>
-	: IBlobRepo<TKey>, IMutableBlobRepo<TKey>, IUpdateBlobs<TKey>, IDeleteAsync<TKey>
+	: IBlobRepo<TKey>, 
+	  IMutableBlobRepo<TKey>, 
+	  IUpdateBlobs<TKey>, 
+	  IDeleteAsync<TKey>
 	where TKey : notnull;
 
-/// <summary>
-/// Defines operations for storing and retrieving binary data (blobs) using string keys.
-/// </summary>
+/// <inheritdoc cref="IBlobStore{TKey}"/>
 /// <remarks>
-/// This is a convenience interface that specifies string as the key type.
+/// This is a convenience interface that specifies <see langword="string"/> 
+/// as the key type.
 /// </remarks>
 public interface IBlobStore
-	: IBlobStore<string>, IBlobRepo, ICreateAndUpdateBlobs, IDeleteBlobs;
+	: IBlobStore<string>, 
+	  IBlobRepo, 
+	  ICreateAndUpdateBlobs, 
+	  IDeleteBlobs;

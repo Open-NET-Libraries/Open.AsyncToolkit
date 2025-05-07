@@ -14,11 +14,18 @@ public class HashedBlobRepository(
 	IHashProvider hashProvider)
 	: IIdempotentRepository<Guid>
 {
+    /// <inheritdoc />
+    /// <exception cref="KeyNotFoundException">
+    /// Thrown when the specified key is not found in the repository.
+    /// </exception>
 	public async ValueTask<Stream> Get(
-		Guid key, CancellationToken cancellationToken = default)
-		=> await blobStore.ReadAsync(key, cancellationToken).ConfigureAwait(false)
-		?? throw new KeyNotFoundException($"Key [{key}] not found.");
+		Guid key, 
+		CancellationToken cancellationToken = default)
+		=> await blobStore.ReadAsync(key, cancellationToken)
+			.ConfigureAwait(false)
+		   ?? throw new KeyNotFoundException($"Key [{key}] not found.");
 
+    /// <inheritdoc />
 	public ValueTask<Guid> Put(
 		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default)
@@ -29,7 +36,9 @@ public class HashedBlobRepository(
 			{
 				ct.ThrowIfCancellationRequested();
 
-				var guids = await entry.Read() ?? FrozenSet<Guid>.Empty;
+				var guids = await entry.Read() 
+					?? FrozenSet<Guid>.Empty;
+				
 				if (guids.Count > 0)
 				{
 					IMemoryOwner<byte>? lease = null;
@@ -51,10 +60,12 @@ public class HashedBlobRepository(
 							if (e.Length != data.Length)
 								continue;
 
-							// Since the change of a hash being the same, it's okay to load the entire item to verify its contents.
-							// This is a bit of a performance hit, but it's the only way to be 100% sure.
+							// Since the change of a hash being the same, it's okay to load 
+							// the entire item to verify its contents. This is a bit of a 
+							// performance hit, but it's the only way to be 100% sure.
 							lease ??= MemoryPool<byte>.Shared.Rent(data.Length);
-							if (await IsSame(data, e, lease.Memory).ConfigureAwait(false))
+							if (await IsSame(data, e, lease.Memory)
+								.ConfigureAwait(false))
 							{
 								return guid; // Exact match found, return existing GUID
 							}
@@ -75,18 +86,34 @@ public class HashedBlobRepository(
 				return newGuid;
 			});
 
-	private static async ValueTask<bool> IsSame(ReadOnlyMemory<byte> data, Stream stream, Memory<byte> buffer)
+    /// <summary>
+    /// Compares a byte array with a stream's content to determine 
+    /// if they are identical.
+    /// </summary>
+    /// <param name="data">The source data to compare.</param>
+    /// <param name="stream">The stream containing data to compare.</param>
+    /// <param name="buffer">A buffer to use for reading from the stream.</param>
+    /// <returns>
+    /// <see langword="true"/> if the data matches;
+    /// otherwise <see langword="false"/>.
+    /// </returns>
+	private static async ValueTask<bool> IsSame(
+		ReadOnlyMemory<byte> data, 
+		Stream stream, 
+		Memory<byte> buffer)
 	{
 		int totalRead = 0;
 		while (totalRead < data.Length)
 		{
 			int toRead = Math.Min(buffer.Length, data.Length - totalRead);
-			int bytesRead = await stream.ReadAsync(buffer[..toRead]).ConfigureAwait(false);
+			int bytesRead = await stream.ReadAsync(buffer[..toRead])
+				.ConfigureAwait(false);
 
 			if (bytesRead == 0)
 				return false;
 
-			if (!buffer.Span[..bytesRead].SequenceEqual(data.Span.Slice(totalRead, bytesRead)))
+			if (!buffer.Span[..bytesRead]
+				.SequenceEqual(data.Span.Slice(totalRead, bytesRead)))
 				return false;
 
 			totalRead += bytesRead;

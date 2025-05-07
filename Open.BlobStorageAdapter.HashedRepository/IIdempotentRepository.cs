@@ -1,9 +1,38 @@
 ﻿namespace Open.BlobStorageAdapter;
 
+/// <summary>
+/// Defines operations for an idempotent repository where content is identified 
+/// by its value rather than by an arbitrary key.
+/// </summary>
+/// <typeparam name="TKey">
+/// The type of content-based key generated for the data.
+/// </typeparam>
 public interface IIdempotentRepository<TKey>
 	where TKey : notnull
 {
-	ValueTask<Stream> Get(TKey key, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Retrieves content from the repository using the specified content-based key.
+    /// </summary>
+    /// <param name="key">The content-based key identifying the data.</param>
+    /// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A stream containing the content.
+    /// The caller is responsible for disposing the returned stream.
+    /// </returns>
+	ValueTask<Stream> Get(
+		TKey key, 
+		CancellationToken cancellationToken = default);
 
-	ValueTask<TKey> Put(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Stores content in the repository and returns a content-based key 
+    /// that can be used to retrieve it.
+    /// </summary>
+    /// <param name="data">The data to store.</param>
+    /// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The content-based key that can be used to retrieve the data.
+    /// </returns>
+	ValueTask<TKey> Put(
+		ReadOnlyMemory<byte> data, 
+		CancellationToken cancellationToken = default);
 }

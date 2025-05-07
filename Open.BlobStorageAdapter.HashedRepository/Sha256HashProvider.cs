@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 namespace Open.BlobStorageAdapter;
 
 /// <summary>
-/// Implementation of IHashProvider using SHA-256 algorithm
+/// Implementation of <see cref="IHashProvider"/> using SHA-256 algorithm.
 /// </summary>
 public class Sha256HashProvider : IHashProvider
 {
@@ -28,10 +28,15 @@ public class Sha256HashProvider : IHashProvider
 	}
 
 	/// <summary>
-	/// Helper to convert a value 0-15 to hex char
+	/// Converts a value 0-15 to its hexadecimal character representation.
 	/// </summary>
+	/// <param name="value">The value to convert (must be 0-15).</param>
+	/// <returns>A hexadecimal character ('0'-'9' or 'a'-'f').</returns>
 	private static char GetHexChar(int value)
 		=> (char)(value < 10 ? '0' + value : 'a' + (value - 10));
 
+    /// <summary>
+    /// Gets the default singleton instance of <see cref="Sha256HashProvider"/>.
+    /// </summary>
 	public static Sha256HashProvider Default { get; } = new();
 }

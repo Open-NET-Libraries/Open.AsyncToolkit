@@ -4,23 +4,25 @@ using System.Text;
 namespace Open.BlobStorageAdapter;
 
 /// <summary>
-/// Defines basic hashing operations for computing content-based identifiers
+/// Defines basic hashing operations for computing content-based identifiers.
 /// </summary>
 public interface IHashProvider
 {
 	/// <summary>
 	/// Computes a hash from bytes.
 	/// </summary>
-	/// <param name="data">The data to hash</param>
-	/// <returns>A hash string</returns>
+	/// <param name="data">The data to hash.</param>
+	/// <returns>A string representation of the computed hash.</returns>
 	string ComputeHash(ReadOnlySpan<byte> data);
 
 	/// <summary>
 	/// Computes a hash from character data using the specified encoding.
 	/// </summary>
-	/// <param name="data">The character data to hash</param>
-	/// <param name="encoding">The encoding to use, defaults to UTF8</param>
-	/// <returns>A hash string</returns>
+	/// <param name="data">The character data to hash.</param>
+	/// <param name="encoding">
+	/// The encoding to use. If <see langword="null"/>, UTF-8 encoding is used.
+	/// </param>
+	/// <returns>A string representation of the computed hash.</returns>
 	string ComputeHash(ReadOnlySpan<char> data, Encoding? encoding = null)
 	{
 		encoding ??= Encoding.UTF8;

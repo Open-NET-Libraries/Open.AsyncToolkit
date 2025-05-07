@@ -1,15 +1,25 @@
 ﻿namespace Open.BlobStorageAdapter.AsyncItem;
 
+/// <summary>
+/// Defines operations for creating items with a generic key type.
+/// </summary>
+/// <typeparam name="TKey">
+/// The type of key used to identify items.
+/// </typeparam>
+/// <typeparam name="TValue">The type of values to store.</typeparam>
 public interface ICreateAsync<TKey, TValue>
 	where TKey : notnull
 {
 	/// <summary>
-	/// Writes a blob to the store with the specified key if it does not exist.
+	/// Creates a new item with the specified key if it does not already exist.
 	/// </summary>
-	/// <param name="key">The key identifying the blob.</param>
-	/// <param name="value">The value of the item.</param>
-	/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-	/// <returns><see langword="true"/> if the blob was stored; otherwise <see langword="false"/>.</returns>
+	/// <param name="key">The key identifying the item.</param>
+	/// <param name="value">The value to store.</param>
+	/// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
+	/// <returns>
+	/// <see langword="true"/> if the item was created;
+	/// otherwise <see langword="false"/>.
+	/// </returns>
 	ValueTask<bool> CreateAsync(
 		TKey key,
 		TValue value,
