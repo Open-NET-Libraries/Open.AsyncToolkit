@@ -21,7 +21,7 @@ public class HashedBlobRepositoryTests
 	private IBlobRepo<Guid> _blobRepo = default!;
 	private ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = default!;
 
-	private AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry = default!;
+	private IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry = default!;
 	private HashedBlobRepository _repository = default!;
 
 	[Before(Test)]
@@ -31,9 +31,8 @@ public class HashedBlobRepositoryTests
 		_blobRepo = Substitute.For<IBlobRepo<Guid>>();
 		_hashMap = Substitute.For<ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>>>();
 
-		// Set up the AsyncDictionaryEntry mock
-		_asyncDictionaryEntry = Substitute.For<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>>(
-			TestHash, _hashMap);
+		// Set up the IAsyncDictionaryEntry mock
+		_asyncDictionaryEntry = Substitute.For<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>>();
 
 		// Set up Lease method to invoke the callback with the entry
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -44,7 +43,7 @@ public class HashedBlobRepositoryTests
 			Arg.Any<Func<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
 			.Returns(callInfo =>
 			{
-				Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>> callback = callInfo.ArgAt<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>(2);
+				Func<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>> callback = callInfo.ArgAt<Func<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>(2);
 				return callback(_asyncDictionaryEntry, callInfo.ArgAt<CancellationToken>(1));
 			});
 #pragma warning restore CA2012 // Use ValueTasks correctly
@@ -97,10 +96,30 @@ public class HashedBlobRepositoryTests
 			.Received(1)
 			.CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(guids => guids.Count == expectedCount));
 
-	private ValueTask<bool> VerifyCreateOrUpdateCalledWithGuids(params Guid[] expectedGuids)
-		=> _asyncDictionaryEntry
-			.Received(1)
-			.CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(guids => expectedGuids.All(guid => guids.Contains(guid))));
+	private async ValueTask<bool> VerifyCreateOrUpdateCalledWithGuids(params Guid[] expectedGuids)
+	{
+		// Instead of using Arg.Is with a predicate, use Arg.Any and check manually
+		await _asyncDictionaryEntry.Received(1).CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>());
+
+		// Get the actual argument that was passed
+		var callsReceived = _asyncDictionaryEntry.ReceivedCalls()
+			.Where(call => call.GetMethodInfo().Name == nameof(IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>.CreateOrUpdate))
+			.ToList();
+
+		// Check that we received exactly one call and validate the argument
+		if (callsReceived.Count != 1)
+		{
+			return false;
+		}
+
+		// Get the actual argument
+		var actualGuids = callsReceived[0].GetArguments()[0] as IReadOnlyCollection<Guid>;
+
+		// Verify all expected GUIDs are in the actual collection
+		bool allFound = expectedGuids.All(guid => actualGuids?.Contains(guid) == true);
+
+		return allFound;
+	}
 
 	#endregion
 
@@ -158,7 +177,7 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var existingGuid = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		// Configure IAsyncDictionaryEntry.Read to return a collection with one GUID
 		SetupGuidSet(existingGuid);
 
 		// Configure blobStore.ReadAsync to return a stream with matching content
@@ -185,7 +204,7 @@ public class HashedBlobRepositoryTests
 	{
 		// Arrange
 
-		// Configure AsyncDictionaryEntry.Read to return an empty collection
+		// Configure IAsyncDictionaryEntry.Read to return an empty collection
 		SetupEmptyGuidSet();
 
 		// Capture the GUID that gets added to the hash map
@@ -210,7 +229,7 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var existingGuid = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		// Configure IAsyncDictionaryEntry.Read to return a collection with one GUID
 		SetupGuidSet(existingGuid);
 
 		// Configure blobStore.ReadAsync to return a stream with different length
@@ -235,7 +254,7 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var existingGuid = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		// Configure IAsyncDictionaryEntry.Read to return a collection with one GUID
 		SetupGuidSet(existingGuid);
 
 		// Configure blobStore.ReadAsync to return a stream with same length but different content
@@ -262,7 +281,7 @@ public class HashedBlobRepositoryTests
 		var matchingGuid = Guid.NewGuid();
 		var nonMatchingGuid2 = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with multiple GUIDs
+		// Configure IAsyncDictionaryEntry.Read to return a collection with multiple GUIDs
 		SetupGuidSet(nonMatchingGuid1, matchingGuid, nonMatchingGuid2);
 
 		// Configure blobStore.ReadAsync for the first GUID to return a non-matching stream
@@ -303,7 +322,7 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var existingGuid = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		// Configure IAsyncDictionaryEntry.Read to return a collection with one GUID
 		SetupGuidSet(existingGuid);
 
 		// Configure blobStore.ReadAsync to return null (should not happen in practice but testing for robustness)
@@ -327,7 +346,7 @@ public class HashedBlobRepositoryTests
 	{
 		// Arrange
 
-		// Configure AsyncDictionaryEntry.Read to return an empty but non-null collection
+		// Configure IAsyncDictionaryEntry.Read to return an empty but non-null collection
 		// (Testing scenario #2 explicitly - empty set that is not null)
 		SetupEmptyGuidSet();
 
@@ -355,7 +374,7 @@ public class HashedBlobRepositoryTests
 		var nonMatchingGuid2 = Guid.NewGuid();
 		var nonMatchingGuid3 = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with multiple GUIDs
+		// Configure IAsyncDictionaryEntry.Read to return a collection with multiple GUIDs
 		// but none of them match the content we're trying to store
 		SetupGuidSet(nonMatchingGuid1, nonMatchingGuid2, nonMatchingGuid3);
 
@@ -399,7 +418,7 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		byte[] emptyData = [];
 
-		// Configure AsyncDictionaryEntry.Read to return an empty collection
+		// Configure IAsyncDictionaryEntry.Read to return an empty collection
 		SetupEmptyGuidSet();
 
 		// Capture the GUID that gets added to the hash map
@@ -422,7 +441,7 @@ public class HashedBlobRepositoryTests
 		byte[] largeData = new byte[LargeDataSize]; // 8KB is enough to test the memory handling
 		new Random(42).NextBytes(largeData); // Fill with random data
 
-		// Configure AsyncDictionaryEntry.Read to return an empty collection
+		// Configure IAsyncDictionaryEntry.Read to return an empty collection
 		SetupEmptyGuidSet();
 
 		// Capture the GUID that gets added to the hash map
@@ -441,7 +460,7 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var deletedGuid = Guid.NewGuid();
 
-		// Configure AsyncDictionaryEntry.Read to return a collection with a GUID that no longer exists
+		// Configure IAsyncDictionaryEntry.Read to return a collection with a GUID that no longer exists
 		SetupGuidSet(deletedGuid);
 
 		// Configure blobStore.ReadAsync to return null, simulating a missing blob
