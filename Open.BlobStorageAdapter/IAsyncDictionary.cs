@@ -3,7 +3,7 @@
 namespace Open.BlobStorageAdapter;
 
 public interface IAsyncDictionary<TKey, TValue>
-	: IReadAsync<TKey, TValue>, IUpdateAsync<TKey, TValue>, IDeleteAsync<TKey>, ICreateAsync<TKey, TValue>
+	: IReadAsync<TKey, TValue>, ICreateAndUpdate<TKey, TValue>, IDeleteAsync<TKey>
 	where TKey : notnull
 {
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -54,5 +54,8 @@ public record AsyncDictionaryEntry<TKey, TValue>
 
 	public ValueTask<bool> Delete()
 		=> _asyncDictionary.DeleteAsync(Key);
+
+	public ValueTask<bool> CreateOrUpdate(TValue value)
+		=> _asyncDictionary.CreateOrUpdateAsync(Key, value);
 
 }

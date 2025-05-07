@@ -67,7 +67,7 @@ public class HashedBlobRepository(
 
 				var newGuid = Guid.NewGuid();
 				guids = guids.Append(newGuid).ToFrozenSet();
-				await entry.Update(guids).ConfigureAwait(false);
+				await entry.CreateOrUpdate(guids).ConfigureAwait(false);
 
 				return newGuid;
 			});
