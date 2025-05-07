@@ -1,7 +1,6 @@
-using System.Buffers;
+using NSubstitute;
 using System.Collections.Frozen;
 using System.Text;
-using NSubstitute;
 
 namespace Open.BlobStorageAdapter.Tests;
 
@@ -10,467 +9,457 @@ namespace Open.BlobStorageAdapter.Tests;
 /// </summary>
 public class HashedBlobRepositoryTests
 {
-    private IBlobRepo<Guid> _blobRepo = null!;
-    private IAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = null!;
-    private IHashProvider _hashProvider = null!;
-    private HashedBlobRepository _repository = null!;
-    private AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry = null!;
-    private string _testHash = null!;
-    
-    // Common test data
-    private readonly string _standardContent = "test content";
-    private byte[] _standardTestData = null!;
-    private const int _largeDataSize = 8192; // 8KB
+	// Use the real (test covered) Sha256HashProvider instead of mocking
+	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;
 
-    [Before(Test)]
-    public void Setup()
-    {
-        // Initialize standard test data
-        _standardTestData = Encoding.UTF8.GetBytes(_standardContent);
-        
-        // Create the mock dependencies using NSubstitute
-        _blobRepo = Substitute.For<IBlobRepo<Guid>>();
-        _hashMap = Substitute.For<IAsyncDictionary<string, IReadOnlyCollection<Guid>>>();
-        
-        // Use the real Sha256HashProvider instead of mocking
-        _hashProvider = new Sha256HashProvider();
-        
-        // Use the real hash provider to generate a test hash
-        _testHash = _hashProvider.ComputeHash(_standardTestData);
-        
-        // Set up the AsyncDictionaryEntry mock
-        _asyncDictionaryEntry = Substitute.For<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>>(
-            _testHash, _hashMap);
-        
-        // Set up Lease method to invoke the callback with the entry
-        _hashMap.Lease(
-            Arg.Any<string>(), 
-            Arg.Any<CancellationToken>(), 
-            Arg.Any<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
-            .Returns(callInfo => 
-            {
-                var callback = callInfo.ArgAt<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>(2);
-                return callback(_asyncDictionaryEntry, callInfo.ArgAt<CancellationToken>(1));
-            });
+	// Common test data
+	private const int LargeDataSize = 8192; // 8KB
+	private const string StandardContent = "test content";
+	private static readonly ReadOnlyMemory<byte> StandardTestData = Encoding.UTF8.GetBytes(StandardContent);
+	private static readonly string TestHash = HashProvider.ComputeHash(StandardTestData.Span);
 
-        // Initialize the repository with the mocks
-        _repository = new HashedBlobRepository(_blobRepo, _hashMap, _hashProvider);
-    }
-    
-    #region Helper Methods
-    
-    private void SetupEmptyGuidSet()
-    {
-        _asyncDictionaryEntry.Read().Returns(FrozenSet<Guid>.Empty);
-    }
-    
-    private void SetupGuidSet(params Guid[] guids)
-    {
-        _asyncDictionaryEntry.Read().Returns(guids.ToFrozenSet());
-    }
-    
-    private Guid SetupCapturedGuid()
-    {
-        Guid capturedGuid = Guid.Empty;
-        _asyncDictionaryEntry.CreateOrUpdate(Arg.Do<IReadOnlyCollection<Guid>>(guids => 
-            capturedGuid = guids.Last()))
-            .Returns(true);
-        return capturedGuid;
-    }
-    
-    private void SetupStreamForGuid(Guid guid, byte[] content)
-    {
-        var stream = new MemoryStream(content);
-        _blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
-            .Returns(stream);
-    }
-    
-    private void SetupStreamForGuid(Guid guid, string content)
-    {
-        SetupStreamForGuid(guid, Encoding.UTF8.GetBytes(content));
-    }
-    
-    private void SetupNullStreamForGuid(Guid guid)
-    {
-        _blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
-            .Returns((Stream?)null);
-    }
-    
-    private void VerifyCreateOrUpdateNotCalled()
-    {
-        _asyncDictionaryEntry.DidNotReceive().CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>());
-    }
-    
-    private void VerifyCreateOrUpdateCalledWithGuidCount(int expectedCount)
-    {
-        _asyncDictionaryEntry.Received(1).CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(
-            guids => guids.Count == expectedCount));
-    }
-    
-    private void VerifyCreateOrUpdateCalledWithGuids(params Guid[] expectedGuids)
-    {
-        _asyncDictionaryEntry.Received(1).CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(
-            guids => expectedGuids.All(guid => guids.Contains(guid))));
-    }
-    
-    #endregion
+	private IBlobRepo<Guid> _blobRepo = default!;
+	private IAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = default!;
 
-    #region Get Tests
+	private AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry = default!;
+	private HashedBlobRepository _repository = default!;
 
-    [Test]
-    public async Task Get_ReturnsBlobStream_WhenBlobExists()
-    {
-        // Arrange
-        var guid = Guid.NewGuid();
-        var testStream = new MemoryStream(Encoding.UTF8.GetBytes("test content"));
-        
-        _blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
-            .Returns(testStream);
+	[Before(Test)]
+	public void Setup()
+	{
+		// Create the mock dependencies using NSubstitute
+		_blobRepo = Substitute.For<IBlobRepo<Guid>>();
+		_hashMap = Substitute.For<IAsyncDictionary<string, IReadOnlyCollection<Guid>>>();
 
-        // Act
-        var result = await _repository.Get(guid);
+		// Set up the AsyncDictionaryEntry mock
+		_asyncDictionaryEntry = Substitute.For<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>>(
+			TestHash, _hashMap);
 
-        // Assert
-        await Assert.That(result).IsNotNull();
-        
-        // Verify that ReadAsync was called with the correct GUID
-        await _blobRepo.Received(1).ReadAsync(guid, Arg.Any<CancellationToken>());
-        
-        // Verify the returned stream content
-        using var streamReader = new StreamReader(result);
-        var content = await streamReader.ReadToEndAsync();
-        await Assert.That(content).IsEqualTo("test content");
-    }
+		// Set up Lease method to invoke the callback with the entry
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2012 // Use ValueTasks correctly
+		_hashMap.Lease(
+			Arg.Any<string>(),
+			Arg.Any<CancellationToken>(),
+			Arg.Any<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
+			.Returns(callInfo =>
+			{
+				Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>> callback = callInfo.ArgAt<Func<AsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>(2);
+				return callback(_asyncDictionaryEntry, callInfo.ArgAt<CancellationToken>(1));
+			});
+#pragma warning restore CA2012 // Use ValueTasks correctly
+#pragma warning restore IDE0079 // Remove unnecessary suppression
 
-    [Test]
-    public async Task Get_ThrowsKeyNotFoundException_WhenBlobDoesNotExist()
-    {
-        // Arrange
-        var guid = Guid.NewGuid();
-        
-        _blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
-            .Returns((Stream?)null);
+		// Initialize the repository with the mocks
+		_repository = new HashedBlobRepository(_blobRepo, _hashMap, HashProvider);
+	}
 
-        // Act & Assert
-        await ((Func<Task>)(async () => await _repository.Get(guid)))
-            .ThrowsAsync<KeyNotFoundException>();
-        
-        // Verify that ReadAsync was called with the correct GUID
-        await _blobRepo.Received(1).ReadAsync(guid, Arg.Any<CancellationToken>());
-    }
+	#region Helper Methods
 
-    #endregion
+	private void SetupEmptyGuidSet()
+		=> _asyncDictionaryEntry.Read().Returns(FrozenSet<Guid>.Empty);
 
-    #region Put Tests
+	private void SetupGuidSet(params Guid[] guids)
+		=> _asyncDictionaryEntry.Read().Returns(guids.ToFrozenSet());
 
-    [Test]
-    public async Task Put_ReturnsExistingGuid_WhenExactMatchExists()
-    {
-        // Arrange
-        var existingGuid = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with one GUID
-        SetupGuidSet(existingGuid);
-        
-        // Configure blobStore.ReadAsync to return a stream with matching content
-        SetupStreamForGuid(existingGuid, _standardTestData);
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+	private Guid SetupCapturedGuid()
+	{
+		Guid capturedGuid = Guid.Empty;
+		_asyncDictionaryEntry
+			.CreateOrUpdate(Arg.Do<IReadOnlyCollection<Guid>>(guids => capturedGuid = guids.Last()))
+			.Returns(true);
+		return capturedGuid;
+	}
 
-        // Assert
-        await Assert.That(result).IsEqualTo(existingGuid);
-        
-        // Verify that Read was called on the entry
-        await _asyncDictionaryEntry.Received(1).Read();
-        
-        // Verify that ReadAsync was called on the blob store with the existing GUID
-        await _blobRepo.Received(1).ReadAsync(existingGuid, Arg.Any<CancellationToken>());
-        
-        // Verify that CreateOrUpdate was NOT called (since we found a match)
-        VerifyCreateOrUpdateNotCalled();
-    }
+	private void SetupStreamForGuid(Guid guid, ReadOnlyMemory<byte> content)
+	{
+		var stream = new MemoryStream(content.ToArray());
+		_blobRepo
+			.ReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns(stream);
+	}
 
-    [Test]
-    public async Task Put_ReturnsNewGuid_WhenNoExactMatchExists()
-    {
-        // Arrange
-        
-        // Configure AsyncDictionaryEntry.Read to return an empty collection
-        SetupEmptyGuidSet();
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+	private void SetupStreamForGuid(Guid guid, string content)
+		=> SetupStreamForGuid(guid, Encoding.UTF8.GetBytes(content));
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(Guid.Empty);
-        
-        // Verify that Read was called on the entry
-        await _asyncDictionaryEntry.Received(1).Read();
-        
-        // Verify that CreateOrUpdate was called on the entry with a collection containing the new GUID
-        VerifyCreateOrUpdateCalledWithGuidCount(1);
-    }
+	private void SetupNullStreamForGuid(Guid guid)
+		=> _blobRepo
+			.ReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns((Stream?)null);
 
-    [Test]
-    public async Task Put_ReturnsNewGuid_WhenExistingBlobHasDifferentLength()
-    {
-        // Arrange
-        var existingGuid = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with one GUID
-        SetupGuidSet(existingGuid);
-        
-        // Configure blobStore.ReadAsync to return a stream with different length
-        SetupStreamForGuid(existingGuid, "different");
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+	private ValueTask<bool> VerifyCreateOrUpdateNotCalled()
+		=> _asyncDictionaryEntry
+			.DidNotReceive()
+			.CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>());
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(existingGuid);
-        
-        // Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
-        VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
-    }
+	private ValueTask<bool> VerifyCreateOrUpdateCalledWithGuidCount(int expectedCount)
+		=> _asyncDictionaryEntry
+			.Received(1)
+			.CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(guids => guids.Count == expectedCount));
 
-    [Test]
-    public async Task Put_ReturnsNewGuid_WhenExistingBlobHasDifferentContent()
-    {
-        // Arrange
-        var existingGuid = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with one GUID
-        SetupGuidSet(existingGuid);
-        
-        // Configure blobStore.ReadAsync to return a stream with same length but different content
-        SetupStreamForGuid(existingGuid, "same length!");
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+	private ValueTask<bool> VerifyCreateOrUpdateCalledWithGuids(params Guid[] expectedGuids)
+		=> _asyncDictionaryEntry
+			.Received(1)
+			.CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(guids => expectedGuids.All(guid => guids.Contains(guid))));
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(existingGuid);
-        
-        // Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
-        VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
-    }
+	#endregion
 
-    [Test]
-    public async Task Put_HandlesMultipleExistingGuids_FindsMatchingOne()
-    {
-        // Arrange
-        var nonMatchingGuid1 = Guid.NewGuid();
-        var matchingGuid = Guid.NewGuid();
-        var nonMatchingGuid2 = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with multiple GUIDs
-        SetupGuidSet(nonMatchingGuid1, matchingGuid, nonMatchingGuid2);
-        
-        // Configure blobStore.ReadAsync for the first GUID to return a non-matching stream
-        SetupStreamForGuid(nonMatchingGuid1, "different!!!");
-        
-        // Configure blobStore.ReadAsync for the second GUID to return a matching stream
-        SetupStreamForGuid(matchingGuid, _standardTestData);
-        
-        // Configure blobStore.ReadAsync for the third GUID (implementation may check all GUIDs)
-        SetupStreamForGuid(nonMatchingGuid2, "also different");
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+	#region Get Tests
 
-        // Assert
-        await Assert.That(result).IsEqualTo(matchingGuid);
-        
-        // Verify that CreateOrUpdate was NOT called (since we found a match)
-        VerifyCreateOrUpdateNotCalled();
-    }
+	[Test]
+	public async Task Get_ReturnsBlobStream_WhenBlobExists()
+	{
+		// Arrange
+		var guid = Guid.NewGuid();
+		var testStream = new MemoryStream(Encoding.UTF8.GetBytes("test content"));
 
-    [Test]
-    public async Task Put_PropagatesCancellation_WhenCancellationIsRequested()
-    {
-        // Arrange
-        var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+		_blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns(testStream);
 
-        // Act & Assert
-        await ((Func<Task>)(async () => 
-            await _repository.Put(_standardTestData, cancellationTokenSource.Token)))
-            .ThrowsAsync<OperationCanceledException>();
-    }
+		// Act
+		Stream result = await _repository.Get(guid);
 
-    [Test]
-    public async Task Put_HandlesNullStreamFromBlobStore()
-    {
-        // Arrange
-        var existingGuid = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with one GUID
-        SetupGuidSet(existingGuid);
-        
-        // Configure blobStore.ReadAsync to return null (should not happen in practice but testing for robustness)
-        SetupNullStreamForGuid(existingGuid);
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+		// Assert
+		await Assert.That(result).IsNotNull();
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(existingGuid);
-        
-        // Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
-        VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
-    }
+		// Verify that ReadAsync was called with the correct GUID
+		await _blobRepo.Received(1).ReadAsync(guid, Arg.Any<CancellationToken>());
 
-    [Test]
-    public async Task Put_HandlesEmptyNonNullSet_CreatesNewSet()
-    {
-        // Arrange
-        
-        // Configure AsyncDictionaryEntry.Read to return an empty but non-null collection
-        // (Testing scenario #2 explicitly - empty set that is not null)
-        SetupEmptyGuidSet();
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+		// Verify the returned stream content
+		using var streamReader = new StreamReader(result);
+		string content = await streamReader.ReadToEndAsync();
+		await Assert.That(content).IsEqualTo("test content");
+	}
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(Guid.Empty);
-        
-        // Verify that Read was called on the entry
-        await _asyncDictionaryEntry.Received(1).Read();
-        
-        // Verify that CreateOrUpdate was called on the entry with a collection containing the new GUID
-        VerifyCreateOrUpdateCalledWithGuidCount(1);
-    }
+	[Test]
+	public async Task Get_ThrowsKeyNotFoundException_WhenBlobDoesNotExist()
+	{
+		// Arrange
+		var guid = Guid.NewGuid();
 
-    [Test]
-    public async Task Put_UpdatesSetAndReturnsNewGuid_WhenNoMatchesInSetOfMultiple()
-    {
-        // Arrange
-        var nonMatchingGuid1 = Guid.NewGuid();
-        var nonMatchingGuid2 = Guid.NewGuid();
-        var nonMatchingGuid3 = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with multiple GUIDs
-        // but none of them match the content we're trying to store
-        SetupGuidSet(nonMatchingGuid1, nonMatchingGuid2, nonMatchingGuid3);
-        
-        // Configure blobStore.ReadAsync for all GUIDs to return non-matching streams
-        SetupStreamForGuid(nonMatchingGuid1, "different content 1");
-        SetupStreamForGuid(nonMatchingGuid2, "different content 2");
-        SetupStreamForGuid(nonMatchingGuid3, "different content 3");
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+		_blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns((Stream?)null);
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(Guid.Empty);
-        await Assert.That(result).IsNotEqualTo(nonMatchingGuid1);
-        await Assert.That(result).IsNotEqualTo(nonMatchingGuid2);
-        await Assert.That(result).IsNotEqualTo(nonMatchingGuid3);
-        
-        // Verify that ReadAsync was called for all GUIDs
-        await _blobRepo.Received().ReadAsync(nonMatchingGuid1, Arg.Any<CancellationToken>());
-        await _blobRepo.Received().ReadAsync(nonMatchingGuid2, Arg.Any<CancellationToken>());
-        await _blobRepo.Received().ReadAsync(nonMatchingGuid3, Arg.Any<CancellationToken>());
-        
-        // Verify that CreateOrUpdate was called with a collection containing all the original GUIDs plus the new one
-        VerifyCreateOrUpdateCalledWithGuids(nonMatchingGuid1, nonMatchingGuid2, nonMatchingGuid3, capturedGuid);
-        
-        // Note: The HashedBlobRepository implementation doesn't actually call CreateAsync
-        // when creating a new GUID, contrary to what we'd expect. It only updates the hashMap.
-        // Therefore, we're not expecting CreateAsync to be called.
-    }
+		// Act & Assert
+		await ((Func<Task>)(async () => await _repository.Get(guid)))
+			.ThrowsAsync<KeyNotFoundException>();
 
-    #endregion
+		// Verify that ReadAsync was called with the correct GUID
+		await _blobRepo.Received(1).ReadAsync(guid, Arg.Any<CancellationToken>());
+	}
 
-    #region Edge Cases and Error Handling
+	#endregion
 
-    [Test]
-    public async Task Put_HandlesEmptyData()
-    {
-        // Arrange
-        var emptyData = Array.Empty<byte>();
-        
-        // Configure AsyncDictionaryEntry.Read to return an empty collection
-        SetupEmptyGuidSet();
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(emptyData);
+	#region Put Tests
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(Guid.Empty);
-        
-        // Verify that CreateOrUpdate was called on the entry
-        VerifyCreateOrUpdateCalledWithGuidCount(1);
-    }
+	[Test]
+	public async Task Put_ReturnsExistingGuid_WhenExactMatchExists()
+	{
+		// Arrange
+		var existingGuid = Guid.NewGuid();
 
-    [Test]
-    public async Task Put_HandlesLargeBlobsEfficiently()
-    {
-        // Arrange - Create a "large" blob for test purposes (not actually large to avoid memory issues in tests)
-        var largeData = new byte[_largeDataSize]; // 8KB is enough to test the memory handling
-        new Random(42).NextBytes(largeData); // Fill with random data
-        
-        // Configure AsyncDictionaryEntry.Read to return an empty collection
-        SetupEmptyGuidSet();
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(largeData);
+		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		SetupGuidSet(existingGuid);
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(Guid.Empty);
-    }
+		// Configure blobStore.ReadAsync to return a stream with matching content
+		SetupStreamForGuid(existingGuid, StandardTestData);
 
-    [Test]
-    public async Task Put_UpdatesHashMapWithNewGuid_WhenAllExistingBlobsAreMissing()
-    {
-        // Arrange
-        var deletedGuid = Guid.NewGuid();
-        
-        // Configure AsyncDictionaryEntry.Read to return a collection with a GUID that no longer exists
-        SetupGuidSet(deletedGuid);
-        
-        // Configure blobStore.ReadAsync to return null, simulating a missing blob
-        SetupNullStreamForGuid(deletedGuid);
-        
-        // Capture the GUID that gets added to the hash map
-        var capturedGuid = SetupCapturedGuid();
-        
-        // Act
-        var result = await _repository.Put(_standardTestData);
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
 
-        // Assert
-        await Assert.That(result).IsNotEqualTo(deletedGuid);
-        
-        // Verify that CreateOrUpdate was called with a collection containing both GUIDs
-        // (the missing one and the new one - we don't clean up missing GUIDs)
-        VerifyCreateOrUpdateCalledWithGuids(deletedGuid, capturedGuid);
-    }
+		// Assert
+		await Assert.That(result).IsEqualTo(existingGuid);
 
-    #endregion
+		// Verify that Read was called on the entry
+		await _asyncDictionaryEntry.Received(1).Read();
+
+		// Verify that ReadAsync was called on the blob store with the existing GUID
+		await _blobRepo.Received(1).ReadAsync(existingGuid, Arg.Any<CancellationToken>());
+
+		// Verify that CreateOrUpdate was NOT called (since we found a match)
+		await VerifyCreateOrUpdateNotCalled();
+	}
+
+	[Test]
+	public async Task Put_ReturnsNewGuid_WhenNoExactMatchExists()
+	{
+		// Arrange
+
+		// Configure AsyncDictionaryEntry.Read to return an empty collection
+		SetupEmptyGuidSet();
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+
+		// Verify that Read was called on the entry
+		await _asyncDictionaryEntry.Received(1).Read();
+
+		// Verify that CreateOrUpdate was called on the entry with a collection containing the new GUID
+		await VerifyCreateOrUpdateCalledWithGuidCount(1);
+	}
+
+	[Test]
+	public async Task Put_ReturnsNewGuid_WhenExistingBlobHasDifferentLength()
+	{
+		// Arrange
+		var existingGuid = Guid.NewGuid();
+
+		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		SetupGuidSet(existingGuid);
+
+		// Configure blobStore.ReadAsync to return a stream with different length
+		SetupStreamForGuid(existingGuid, "different");
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(existingGuid);
+
+		// Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
+		await VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
+	}
+
+	[Test]
+	public async Task Put_ReturnsNewGuid_WhenExistingBlobHasDifferentContent()
+	{
+		// Arrange
+		var existingGuid = Guid.NewGuid();
+
+		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		SetupGuidSet(existingGuid);
+
+		// Configure blobStore.ReadAsync to return a stream with same length but different content
+		SetupStreamForGuid(existingGuid, "same length!");
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(existingGuid);
+
+		// Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
+		await VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
+	}
+
+	[Test]
+	public async Task Put_HandlesMultipleExistingGuids_FindsMatchingOne()
+	{
+		// Arrange
+		var nonMatchingGuid1 = Guid.NewGuid();
+		var matchingGuid = Guid.NewGuid();
+		var nonMatchingGuid2 = Guid.NewGuid();
+
+		// Configure AsyncDictionaryEntry.Read to return a collection with multiple GUIDs
+		SetupGuidSet(nonMatchingGuid1, matchingGuid, nonMatchingGuid2);
+
+		// Configure blobStore.ReadAsync for the first GUID to return a non-matching stream
+		SetupStreamForGuid(nonMatchingGuid1, "different!!!");
+
+		// Configure blobStore.ReadAsync for the second GUID to return a matching stream
+		SetupStreamForGuid(matchingGuid, StandardTestData);
+
+		// Configure blobStore.ReadAsync for the third GUID (implementation may check all GUIDs)
+		SetupStreamForGuid(nonMatchingGuid2, "also different");
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsEqualTo(matchingGuid);
+
+		// Verify that CreateOrUpdate was NOT called (since we found a match)
+		await VerifyCreateOrUpdateNotCalled();
+	}
+
+	[Test]
+	public async Task Put_PropagatesCancellation_WhenCancellationIsRequested()
+	{
+		// Arrange
+		var cancellationTokenSource = new CancellationTokenSource();
+		cancellationTokenSource.Cancel();
+
+		// Act & Assert
+		await ((Func<Task>)(async () =>
+			await _repository.Put(StandardTestData, cancellationTokenSource.Token)))
+			.ThrowsAsync<OperationCanceledException>();
+	}
+
+	[Test]
+	public async Task Put_HandlesNullStreamFromBlobStore()
+	{
+		// Arrange
+		var existingGuid = Guid.NewGuid();
+
+		// Configure AsyncDictionaryEntry.Read to return a collection with one GUID
+		SetupGuidSet(existingGuid);
+
+		// Configure blobStore.ReadAsync to return null (should not happen in practice but testing for robustness)
+		SetupNullStreamForGuid(existingGuid);
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(existingGuid);
+
+		// Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
+		await VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
+	}
+
+	[Test]
+	public async Task Put_HandlesEmptyNonNullSet_CreatesNewSet()
+	{
+		// Arrange
+
+		// Configure AsyncDictionaryEntry.Read to return an empty but non-null collection
+		// (Testing scenario #2 explicitly - empty set that is not null)
+		SetupEmptyGuidSet();
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+
+		// Verify that Read was called on the entry
+		await _asyncDictionaryEntry.Received(1).Read();
+
+		// Verify that CreateOrUpdate was called on the entry with a collection containing the new GUID
+		await VerifyCreateOrUpdateCalledWithGuidCount(1);
+	}
+
+	[Test]
+	public async Task Put_UpdatesSetAndReturnsNewGuid_WhenNoMatchesInSetOfMultiple()
+	{
+		// Arrange
+		var nonMatchingGuid1 = Guid.NewGuid();
+		var nonMatchingGuid2 = Guid.NewGuid();
+		var nonMatchingGuid3 = Guid.NewGuid();
+
+		// Configure AsyncDictionaryEntry.Read to return a collection with multiple GUIDs
+		// but none of them match the content we're trying to store
+		SetupGuidSet(nonMatchingGuid1, nonMatchingGuid2, nonMatchingGuid3);
+
+		// Configure blobStore.ReadAsync for all GUIDs to return non-matching streams
+		SetupStreamForGuid(nonMatchingGuid1, "different content 1");
+		SetupStreamForGuid(nonMatchingGuid2, "different content 2");
+		SetupStreamForGuid(nonMatchingGuid3, "different content 3");
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+		await Assert.That(result).IsNotEqualTo(nonMatchingGuid1);
+		await Assert.That(result).IsNotEqualTo(nonMatchingGuid2);
+		await Assert.That(result).IsNotEqualTo(nonMatchingGuid3);
+
+		// Verify that ReadAsync was called for all GUIDs
+		await _blobRepo.Received().ReadAsync(nonMatchingGuid1, Arg.Any<CancellationToken>());
+		await _blobRepo.Received().ReadAsync(nonMatchingGuid2, Arg.Any<CancellationToken>());
+		await _blobRepo.Received().ReadAsync(nonMatchingGuid3, Arg.Any<CancellationToken>());
+
+		// Verify that CreateOrUpdate was called with a collection containing all the original GUIDs plus the new one
+		await VerifyCreateOrUpdateCalledWithGuids(nonMatchingGuid1, nonMatchingGuid2, nonMatchingGuid3, capturedGuid);
+
+		// Note: The HashedBlobRepository implementation doesn't actually call CreateAsync
+		// when creating a new GUID, contrary to what we'd expect. It only updates the hashMap.
+		// Therefore, we're not expecting CreateAsync to be called.
+	}
+
+	#endregion
+
+	#region Edge Cases and Error Handling
+
+	[Test]
+	public async Task Put_HandlesEmptyData()
+	{
+		// Arrange
+		byte[] emptyData = [];
+
+		// Configure AsyncDictionaryEntry.Read to return an empty collection
+		SetupEmptyGuidSet();
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(emptyData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+
+		// Verify that CreateOrUpdate was called on the entry
+		await VerifyCreateOrUpdateCalledWithGuidCount(1);
+	}
+
+	[Test]
+	public async Task Put_HandlesLargeBlobsEfficiently()
+	{
+		// Arrange - Create a "large" blob for test purposes (not actually large to avoid memory issues in tests)
+		byte[] largeData = new byte[LargeDataSize]; // 8KB is enough to test the memory handling
+		new Random(42).NextBytes(largeData); // Fill with random data
+
+		// Configure AsyncDictionaryEntry.Read to return an empty collection
+		SetupEmptyGuidSet();
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(largeData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+	}
+
+	[Test]
+	public async Task Put_UpdatesHashMapWithNewGuid_WhenAllExistingBlobsAreMissing()
+	{
+		// Arrange
+		var deletedGuid = Guid.NewGuid();
+
+		// Configure AsyncDictionaryEntry.Read to return a collection with a GUID that no longer exists
+		SetupGuidSet(deletedGuid);
+
+		// Configure blobStore.ReadAsync to return null, simulating a missing blob
+		SetupNullStreamForGuid(deletedGuid);
+
+		// Capture the GUID that gets added to the hash map
+		Guid capturedGuid = SetupCapturedGuid();
+
+		// Act
+		Guid result = await _repository.Put(StandardTestData);
+
+		// Assert
+		await Assert.That(result).IsNotEqualTo(deletedGuid);
+
+		// Verify that CreateOrUpdate was called with a collection containing both GUIDs
+		// (the missing one and the new one - we don't clean up missing GUIDs)
+		await VerifyCreateOrUpdateCalledWithGuids(deletedGuid, capturedGuid);
+	}
+
+	#endregion
 }

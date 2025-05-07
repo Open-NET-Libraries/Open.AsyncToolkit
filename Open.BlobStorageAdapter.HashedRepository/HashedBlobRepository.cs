@@ -40,7 +40,8 @@ public class HashedBlobRepository(
 							ct.ThrowIfCancellationRequested();
 
 							// Verify if the existing entry is a match.
-							using var e = await blobStore.ReadAsync(guid, ct).ConfigureAwait(false);
+							using var e = await blobStore.ReadAsync(guid, ct)
+								.ConfigureAwait(false);
 
 							// Should never happen, but we'll check anyway and move on.
 							if (e is null)
@@ -53,7 +54,7 @@ public class HashedBlobRepository(
 							// Since the change of a hash being the same, it's okay to load the entire item to verify its contents.
 							// This is a bit of a performance hit, but it's the only way to be 100% sure.
 							lease ??= MemoryPool<byte>.Shared.Rent(data.Length);
-							if (await IsSame(data, e, lease.Memory))
+							if (await IsSame(data, e, lease.Memory).ConfigureAwait(false))
 							{
 								return guid; // Exact match found, return existing GUID
 							}
@@ -64,6 +65,8 @@ public class HashedBlobRepository(
 						lease?.Dispose(); // Dispose the lease if it was created
 					}
 				}
+
+				ct.ThrowIfCancellationRequested();
 
 				var newGuid = Guid.NewGuid();
 				guids = guids.Append(newGuid).ToFrozenSet();
@@ -83,7 +86,7 @@ public class HashedBlobRepository(
 			if (bytesRead == 0)
 				return false;
 
-			if (!buffer[..bytesRead].Span.SequenceEqual(data.Span.Slice(totalRead, bytesRead)))
+			if (!buffer.Span[..bytesRead].SequenceEqual(data.Span.Slice(totalRead, bytesRead)))
 				return false;
 
 			totalRead += bytesRead;
