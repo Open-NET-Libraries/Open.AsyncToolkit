@@ -10,16 +10,14 @@
 public interface ICreateAndUpdateBlobs<TKey>
 	where TKey : notnull
 {
-    /// <summary>
-    /// Creates a new blob or updates an existing blob with the specified key.
-    /// </summary>
-    /// <param name="key">The key identifying the blob.</param>
-    /// <param name="writeHandler">A delegate that writes data to the provided stream.</param>
-    /// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// <see langword="true"/> if the blob was created or updated;
-    /// otherwise <see langword="false"/>.
-    /// </returns>
+	/// <summary>
+	/// Creates a new blob or updates an existing blob with the specified key.
+	/// </summary>
+	/// <returns>
+	/// <see langword="true"/> if the blob was created or updated;
+	/// otherwise <see langword="false"/>.
+	/// </returns>
+	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, Func{Stream, CancellationToken, ValueTask}, CancellationToken)"/>
 	ValueTask<bool> CreateOrUpdateAsync(
 		TKey key,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
@@ -28,8 +26,7 @@ public interface ICreateAndUpdateBlobs<TKey>
 
 /// <inheritdoc cref="ICreateAndUpdateBlobs{TKey}"/>
 /// <remarks>
-/// This is a convenience interface that specifies <see langword="string"/> 
-/// as the key type.
+/// <inheritdoc cref="ICreateBlobs" path="/remarks"/>
 /// </remarks>
 public interface ICreateAndUpdateBlobs
 	: ICreateAndUpdateBlobs<string>;

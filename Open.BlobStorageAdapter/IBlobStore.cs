@@ -10,19 +10,19 @@ namespace Open.BlobStorageAdapter;
 /// The type of key used to identify blobs in the store.
 /// </typeparam>
 public interface IBlobStore<TKey>
-	: IBlobRepo<TKey>, 
-	  IMutableBlobRepo<TKey>, 
-	  IUpdateBlobs<TKey>, 
+	: IBlobRepo<TKey>,
+	  IMutableBlobRepo<TKey>,
+	  IUpdateBlobs<TKey>,
 	  IDeleteAsync<TKey>
 	where TKey : notnull;
 
-/// <inheritdoc cref="IBlobStore{TKey}"/>
 /// <remarks>
 /// This is a convenience interface that specifies <see langword="string"/> 
 /// as the key type.
 /// </remarks>
+/// <inheritdoc cref="IBlobStore{TKey}"/>
 public interface IBlobStore
-	: IBlobStore<string>, 
-	  IBlobRepo, 
-	  ICreateAndUpdateBlobs, 
+	: IBlobStore<string>,
+	  IBlobRepo,
+	  ICreateAndUpdateBlobs,
 	  IDeleteBlobs;

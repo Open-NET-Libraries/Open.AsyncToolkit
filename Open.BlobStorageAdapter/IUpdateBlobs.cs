@@ -3,22 +3,18 @@
 /// <summary>
 /// Defines operations for updating binary data (blobs) with a generic key type.
 /// </summary>
-/// <typeparam name="TKey">
-/// The type of key used to identify blobs.
-/// </typeparam>
+/// <inheritdoc cref="ICreateBlobs{TKey}"/>
 public interface IUpdateBlobs<TKey>
 	where TKey : notnull
 {
-    /// <summary>
-    /// Updates an existing blob with the specified key.
-    /// </summary>
-    /// <param name="key">The key identifying the blob to update.</param>
-    /// <param name="writeHandler">A delegate that writes data to the provided stream.</param>
-    /// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// <see langword="true"/> if the blob was updated;
-    /// otherwise <see langword="false"/>.
-    /// </returns>
+	/// <summary>
+	/// Updates an existing blob with the specified key.
+	/// </summary>
+	/// <returns>
+	/// <see langword="true"/> if the blob was updated;
+	/// otherwise <see langword="false"/>.
+	/// </returns>
+	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, Func{Stream, CancellationToken, ValueTask}, CancellationToken)"/>
 	ValueTask<bool> UpdateAsync(
 		TKey key,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
@@ -27,8 +23,7 @@ public interface IUpdateBlobs<TKey>
 
 /// <inheritdoc cref="IUpdateBlobs{TKey}"/>
 /// <remarks>
-/// This is a convenience interface that specifies <see langword="string"/> 
-/// as the key type.
+/// <inheritdoc cref="ICreateBlobs" path="/remarks"/>
 /// </remarks>
 public interface IUpdateBlobs
 	: IUpdateBlobs<string>;

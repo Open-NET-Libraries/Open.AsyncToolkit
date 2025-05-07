@@ -6,7 +6,7 @@ namespace Open.BlobStorageAdapter;
 /// Defines operations for deleting binary data (blobs) using string keys.
 /// </summary>
 /// <remarks>
-/// This is a convenience interface that specifies <see langword="string"/> as the key type.
+/// <inheritdoc cref="ICreateBlobs" path="/remarks"/>
 /// </remarks>
 public interface IDeleteBlobs
 	: IDeleteAsync<string>;
