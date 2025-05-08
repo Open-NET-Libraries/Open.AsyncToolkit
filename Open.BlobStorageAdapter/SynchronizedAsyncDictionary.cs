@@ -235,7 +235,7 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 					int currentCount = lease.Semaphore.CurrentCount;
 					Debug.Assert(currentCount == 1, "Semaphore not released before disposal.");
 
-					if (activeCount != 0 || currentCount != 0)
+					if (activeCount != 0 || currentCount != 1)
 					{
 						try { lease.Dispose(); }
 						catch { }
