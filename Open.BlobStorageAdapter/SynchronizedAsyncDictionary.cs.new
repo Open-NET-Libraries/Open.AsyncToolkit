@@ -1,5 +1,6 @@
-using Open.Disposable;
 using System.Collections.Concurrent;
+using Open.Disposable;
+using Open.Disposable.ObjectPools;
 
 namespace Open.BlobStorageAdapter;
 
@@ -10,35 +11,86 @@ namespace Open.BlobStorageAdapter;
 /// </summary>
 /// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
 /// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
-public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDictionary<TKey, TValue>
+/// <remarks>
+/// Initializes a new instance of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
+/// that wraps the specified <see cref="IAsyncDictionary{TKey, TValue}"/> implementation.
+/// </remarks>
+/// <param name="innerDictionary">The underlying dictionary to provide synchronized access to.</param>
+/// <param name="semaphorePool">The object pool for recycling SemaphoreSlim instances.</param>
+public class SynchronizedAsyncDictionary<TKey, TValue>(
+	IAsyncDictionary<TKey, TValue> innerDictionary,
+	IObjectPool<SemaphoreSlim>? semaphorePool = null)
+	: ISynchronizedAsyncDictionary<TKey, TValue>
 	, IDisposable
 	where TKey : notnull
 {
-	private readonly IAsyncDictionary<TKey, TValue> _innerDictionary;
+	private readonly IAsyncDictionary<TKey, TValue> _innerDictionary
+		= innerDictionary ?? throw new ArgumentNullException(nameof(innerDictionary));
 
-	private readonly ConcurrentDictionary<TKey, Lazy<SemaphoreSlim>> _locks = new();
-
-	private readonly InterlockedArrayObjectPool<SemaphoreSlim>? _ownedPool;
-
+	private readonly ConcurrentDictionary<TKey, Lazy<SemaphoreSlimLease>> _locks = new();
 	private readonly IObjectPool<SemaphoreSlim> _semaphorePool;
-
 	private int _disposeState;
 
 	/// <summary>
-	/// Initializes a new instance of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
-	/// that wraps the specified <see cref="IAsyncDictionary{TKey, TValue}"/> implementation.
+	/// A recyclable lease for a SemaphoreSlim that can be returned to the pool when no longer needed.
 	/// </summary>
-	/// <param name="innerDictionary">The underlying dictionary to provide synchronized access to.</param>
-	/// <param name="semaphorePool">The object pool for recycling SemaphoreSlim instances.</param>
-	public SynchronizedAsyncDictionary(
-		IAsyncDictionary<TKey, TValue> innerDictionary,
-		IObjectPool<SemaphoreSlim>? semaphorePool = null)
+	private class SemaphoreSlimLease : DisposableBase
 	{
-		_innerDictionary = innerDictionary
-			?? throw new ArgumentNullException(nameof(innerDictionary));
+		/// <summary>
+		/// The leased semaphore.
+		/// </summary>
+		public readonly SemaphoreSlim Semaphore;
+		private readonly IObjectPool<SemaphoreSlim> _pool;
 
-		_semaphorePool = semaphorePool
-			?? (_ownedPool = InterlockedArrayObjectPool.CreateAutoDisposal(() => new SemaphoreSlim(1, 1)));
+		public SemaphoreSlimLease(SemaphoreSlim semaphore, IObjectPool<SemaphoreSlim> pool)
+		{
+			Semaphore = semaphore;
+			_pool = pool;
+		}
+
+		protected override void OnDispose()
+		{
+			if (Semaphore.CurrentCount == 0)
+			{
+				try { Semaphore.Release(); } catch { /* ignore */ }
+			}
+			
+			_pool.Give(Semaphore);
+		}
+	}
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
+	/// with the specified inner dictionary.
+	/// </summary>
+	static SynchronizedAsyncDictionary()
+	{
+		// Empty constructor needed for static initialization
+	}
+
+	/// <summary>
+	/// Constructs a new <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> instance.
+	/// </summary>
+	public SynchronizedAsyncDictionary() : this(new MemoryAsyncDictionary<TKey, TValue>())
+	{
+		// Default constructor implementation
+	}
+
+	// Constructor logic for initializing semaphore pool
+	{
+		// Initialize default semaphore pool if not provided
+		_semaphorePool = semaphorePool ?? RecyclableObjectPool<SemaphoreSlim>.Create(
+			factory: () => new SemaphoreSlim(1, 1),
+			recycler: semaphore =>
+			{
+				// Ensure the semaphore is in a released state before recycling
+				if (semaphore.CurrentCount == 0)
+				{
+					try { semaphore.Release(); } catch { /* ignore */ }
+				}
+				
+				return true; // Semaphore can be reused
+			});
 	}
 
 	/// <inheritdoc />
@@ -62,17 +114,20 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		Func<IAsyncDictionaryEntry<TKey, TValue>, CancellationToken, ValueTask<T>> operation)
 	{
 		if (_disposeState != 0)
-			throw new ObjectDisposedException(nameof(SynchronizedAsyncDictionary<,>));
+			throw new ObjectDisposedException(nameof(SynchronizedAsyncDictionary<TKey, TValue>));
 
 		cancellationToken.ThrowIfCancellationRequested();
 
 		// Get or create a synchronization lock for this key
-		var keyLock = _locks.GetOrAdd(key, _ => new(() => _semaphorePool.Take())).Value;
+		var keyLockLazy = _locks.GetOrAdd(key, k => new Lazy<SemaphoreSlimLease>(() => 
+			new SemaphoreSlimLease(_semaphorePool.Take(), _semaphorePool)));
+		
+		var keyLock = keyLockLazy.Value;
 
 		try
 		{
 			// Wait for exclusive access to the key
-			await keyLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+			await keyLock.Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
 			try
 			{
@@ -83,17 +138,21 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			finally
 			{
 				// Release the lock
-				keyLock.Release();
+				keyLock.Semaphore.Release();
 			}
 		}
 		finally
 		{
 			// If there are no pending operations and the key doesn't exist in the dictionary,
 			// we can safely remove the lock from our locks dictionary
-			if (keyLock.CurrentCount == 1 && !await _innerDictionary.ExistsAsync(key, CancellationToken.None).ConfigureAwait(false))
+			if (keyLock.Semaphore.CurrentCount == 1 && 
+				!await _innerDictionary.ExistsAsync(key, CancellationToken.None).ConfigureAwait(false))
 			{
 				// Try to remove the lock to prevent memory leaks
-				_locks.TryRemove(key, out _);
+				if (_locks.TryRemove(key, out var removed))
+				{
+					removed.Value.Dispose();
+				}
 			}
 		}
 	}
@@ -125,12 +184,12 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			foreach (var lockItem in _locks.Values)
 			{
 				if (lockItem.IsValueCreated)
-					_semaphorePool.Give(lockItem.Value);
+				{
+					lockItem.Value.Dispose();
+				}
 			}
 
 			_locks.Clear();
-
-			_ownedPool?.Dispose();
 		}
 
 		Interlocked.CompareExchange(ref _disposeState, 2, 1);
