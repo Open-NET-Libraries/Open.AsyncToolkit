@@ -1,5 +1,14 @@
 ﻿namespace Open.BlobStorageAdapter;
 
+/// <summary>
+/// Represents an asynchronous dictionary that provides exclusive leased access to dictionary entries.
+/// This interface extends <see cref="IReadAsync{TKey, TValue}"/> to add operations that guarantee
+/// exclusive access to a specific dictionary entry for the duration of an operation, effectively
+/// creating a lease on that entry. This prevents race conditions in multi-threaded environments
+/// by ensuring only one operation at a time can access a given key.
+/// </summary>
+/// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
+/// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
 public interface ISynchronizedAsyncDictionary<TKey, TValue>
 	: IReadAsync<TKey, TValue>
 	where TKey : notnull

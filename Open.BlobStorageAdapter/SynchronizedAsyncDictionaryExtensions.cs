@@ -11,6 +11,18 @@
 public static class SynchronizedAsyncDictionaryExtensions
 {
 	/// <summary>
+	/// Creates a synchronized wrapper around the specified async dictionary that provides exclusive leased access to dictionary entries.
+	/// </summary>
+	/// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
+	/// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
+	/// <param name="asyncDictionary">The async dictionary to wrap.</param>
+	/// <returns>A new <see cref="ISynchronizedAsyncDictionary{TKey, TValue}"/> that provides synchronized access to the specified dictionary.</returns>
+	public static ISynchronizedAsyncDictionary<TKey, TValue> Synchronized<TKey, TValue>(
+		this IAsyncDictionary<TKey, TValue> asyncDictionary)
+		where TKey : notnull
+		=> new SynchronizedAsyncDictionary<TKey, TValue>(asyncDictionary);
+
+	/// <summary>
 	/// Leases an entry for the specified key and performs an operation on it.
 	/// </summary>
 	/// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
