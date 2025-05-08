@@ -11,7 +11,7 @@ public class FileSystemBlobStoreTests
 	private string _tempDirectory = null!;
 	private IBlobStore _blobStore = null!;
 	private FileSystemBlobStore _fileSystemBlobStore = null!;
-	
+
 	// Common test data
 	private const string StandardContent = "Hello, World!";
 	private const string SyncContent = "Hello, World Sync!";
@@ -63,7 +63,7 @@ public class FileSystemBlobStoreTests
 	public async Task Exists_ReturnsTrue_WhenBlobExists()
 	{
 		string key = "test-key-sync";
-		
+
 		// Create a blob and verify existence
 		bool written = await CreateAndVerifyBlob(key, StandardContent, useAsync: false);
 		await Assert.That(written).IsTrue();

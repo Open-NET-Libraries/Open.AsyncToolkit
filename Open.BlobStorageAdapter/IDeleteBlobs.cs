@@ -1,6 +1,4 @@
-﻿using Open.BlobStorageAdapter.AsyncItem;
-
-namespace Open.BlobStorageAdapter;
+﻿namespace Open.BlobStorageAdapter;
 
 /// <summary>
 /// Defines operations for deleting binary data (blobs) using string keys.

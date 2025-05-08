@@ -1,4 +1,3 @@
-using Open.BlobStorageAdapter.AsyncItem;
 using System.Collections.Concurrent;
 
 namespace Open.BlobStorageAdapter;

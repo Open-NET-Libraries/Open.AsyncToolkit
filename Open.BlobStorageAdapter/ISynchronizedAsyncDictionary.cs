@@ -1,6 +1,4 @@
-﻿using Open.BlobStorageAdapter.AsyncItem;
-
-namespace Open.BlobStorageAdapter;
+﻿namespace Open.BlobStorageAdapter;
 
 public interface ISynchronizedAsyncDictionary<TKey, TValue>
 	: IReadAsync<TKey, TValue>

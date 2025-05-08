@@ -1,5 +1,3 @@
-using Open.BlobStorageAdapter.AsyncItem;
-
 namespace Open.BlobStorageAdapter;
 
 /// <summary>

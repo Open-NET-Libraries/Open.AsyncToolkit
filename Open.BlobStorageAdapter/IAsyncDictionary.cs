@@ -1,6 +1,4 @@
-﻿using Open.BlobStorageAdapter.AsyncItem;
-
-namespace Open.BlobStorageAdapter;
+﻿namespace Open.BlobStorageAdapter;
 
 /// <summary>
 /// Defines a dictionary-like interface for asynchronous operations 

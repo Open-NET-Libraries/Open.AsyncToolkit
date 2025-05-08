@@ -1,4 +1,5 @@
-﻿namespace Open.BlobStorageAdapter.AsyncItem;
+﻿
+namespace Open.BlobStorageAdapter;
 
 /// <summary>
 /// Defines operations for reading items with a generic key type.

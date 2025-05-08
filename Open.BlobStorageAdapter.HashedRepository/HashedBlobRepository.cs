@@ -9,7 +9,7 @@ namespace Open.BlobStorageAdapter;
 /// Any matching blobs stored will result in the same ID returned.
 /// </summary>
 public class HashedBlobRepository(
-	IBlobRepo<Guid> blobStore,
+	IBlobRepo<Guid> blobRepo,
 	ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> hashMap,
 	IHashProvider hashProvider)
 	: IIdempotentRepository<Guid>
@@ -21,7 +21,7 @@ public class HashedBlobRepository(
 	public async ValueTask<Stream> Get(
 		Guid key,
 		CancellationToken cancellationToken = default)
-		=> await blobStore.ReadAsync(key, cancellationToken)
+		=> await blobRepo.ReadAsync(key, cancellationToken)
 			.ConfigureAwait(false)
 		   ?? throw new KeyNotFoundException($"Key [{key}] not found.");
 
@@ -34,9 +34,7 @@ public class HashedBlobRepository(
 			cancellationToken,
 			async (entry, ct) =>
 			{
-				ct.ThrowIfCancellationRequested();
-
-				var guids = await entry.Read()
+				var guids = await entry.Read(ct)
 					?? FrozenSet<Guid>.Empty;
 
 				if (guids.Count > 0)
@@ -46,10 +44,8 @@ public class HashedBlobRepository(
 					{
 						foreach (var guid in guids)
 						{
-							ct.ThrowIfCancellationRequested();
-
 							// Verify if the existing entry is a match.
-							using var e = await blobStore.ReadAsync(guid, ct)
+							using var e = await blobRepo.ReadAsync(guid, ct)
 								.ConfigureAwait(false);
 
 							// Should never happen, but we'll check anyway and move on.
@@ -77,11 +73,9 @@ public class HashedBlobRepository(
 					}
 				}
 
-				ct.ThrowIfCancellationRequested();
-
 				var newGuid = Guid.NewGuid();
 				guids = guids.Append(newGuid).ToFrozenSet();
-				await entry.CreateOrUpdate(guids).ConfigureAwait(false);
+				await entry.CreateOrUpdate(guids, ct).ConfigureAwait(false);
 
 				return newGuid;
 			});
@@ -109,12 +103,11 @@ public class HashedBlobRepository(
 			int bytesRead = await stream.ReadAsync(buffer[..toRead])
 				.ConfigureAwait(false);
 
-			if (bytesRead == 0)
-				return false;
-
-			if (!buffer.Span[..bytesRead]
+			if (bytesRead == 0 || !buffer.Span[..bytesRead]
 				.SequenceEqual(data.Span.Slice(totalRead, bytesRead)))
+			{
 				return false;
+			}
 
 			totalRead += bytesRead;
 		}

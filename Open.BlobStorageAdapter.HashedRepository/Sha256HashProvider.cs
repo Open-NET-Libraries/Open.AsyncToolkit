@@ -35,8 +35,8 @@ public class Sha256HashProvider : IHashProvider
 	private static char GetHexChar(int value)
 		=> (char)(value < 10 ? '0' + value : 'a' + (value - 10));
 
-    /// <summary>
-    /// Gets the default singleton instance of <see cref="Sha256HashProvider"/>.
-    /// </summary>
+	/// <summary>
+	/// Gets the default singleton instance of <see cref="Sha256HashProvider"/>.
+	/// </summary>
 	public static Sha256HashProvider Default { get; } = new();
 }

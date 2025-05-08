@@ -1,5 +1,3 @@
-using Open.BlobStorageAdapter.AsyncItem;
-
 namespace Open.BlobStorageAdapter.FileSystem;
 
 /// <summary>
@@ -240,13 +238,16 @@ public class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	ValueTask<Stream?> IReadAsync<string, Stream>.ReadAsync(
+	ValueTask<TryReadResult<Stream>> IReadAsync<string, Stream>.TryReadAsync(
 		string key,
 		CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
-		_ = TryRead(key, out var stream);
-		return new ValueTask<Stream?>(stream);
+		TryRead(key, out var stream);
+		return new ValueTask<TryReadResult<Stream>>(
+			stream is not null
+				? TryReadResult<Stream>.Succeeded(stream)
+				: TryReadResult<Stream>.Failed);
 	}
 
 	/// <inheritdoc />

@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter.AsyncItem;
+﻿namespace Open.BlobStorageAdapter;
 
 public readonly record struct TryReadResult<TValue>
 {
