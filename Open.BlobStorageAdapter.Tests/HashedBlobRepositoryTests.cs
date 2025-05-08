@@ -56,50 +56,65 @@ public class HashedBlobRepositoryTests
 	#region Helper Methods
 
 	private void SetupEmptyGuidSet()
-		=> _asyncDictionaryEntry.Read().Returns(FrozenSet<Guid>.Empty);
+	{
+		var emptySet = FrozenSet<Guid>.Empty;
+		var result = TryReadResult<IReadOnlyCollection<Guid>>.Succeeded(emptySet);
+		_asyncDictionaryEntry.TryRead(Arg.Any<CancellationToken>()).Returns(new ValueTask<TryReadResult<IReadOnlyCollection<Guid>>>(result));
+	}
 
 	private void SetupGuidSet(params Guid[] guids)
-		=> _asyncDictionaryEntry.Read().Returns(guids.ToFrozenSet());
+	{
+		var guidSet = guids.ToFrozenSet();
+		var result = TryReadResult<IReadOnlyCollection<Guid>>.Succeeded(guidSet);
+		_asyncDictionaryEntry.TryRead(Arg.Any<CancellationToken>()).Returns(new ValueTask<TryReadResult<IReadOnlyCollection<Guid>>>(result));
+	}
 
 	private Guid SetupCapturedGuid()
 	{
 		Guid capturedGuid = Guid.Empty;
 		_asyncDictionaryEntry
-			.CreateOrUpdate(Arg.Do<IReadOnlyCollection<Guid>>(guids => capturedGuid = guids.Last()))
-			.Returns(true);
+			.CreateOrUpdate(Arg.Do<IReadOnlyCollection<Guid>>(guids => capturedGuid = guids.Last()), Arg.Any<CancellationToken>())
+			.Returns(new ValueTask<bool>(true));
 		return capturedGuid;
 	}
 
 	private void SetupStreamForGuid(Guid guid, ReadOnlyMemory<byte> content)
 	{
 		var stream = new MemoryStream(content.ToArray());
+		
+		// First, set up TryReadAsync to return a successful result
+		var tryReadResult = TryReadResult<Stream>.Succeeded(stream);
 		_blobRepo
-			.ReadAsync(guid, Arg.Any<CancellationToken>())
-			.Returns(stream);
+			.TryReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
 	}
 
 	private void SetupStreamForGuid(Guid guid, string content)
 		=> SetupStreamForGuid(guid, Encoding.UTF8.GetBytes(content));
 
 	private void SetupNullStreamForGuid(Guid guid)
-		=> _blobRepo
-			.ReadAsync(guid, Arg.Any<CancellationToken>())
-			.Returns((Stream?)null);
+	{
+		// For null streams, set up TryReadAsync to return a failed result
+		var tryReadResult = TryReadResult<Stream>.Failed;
+		_blobRepo
+			.TryReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
+	}
 
 	private ValueTask<bool> VerifyCreateOrUpdateNotCalled()
 		=> _asyncDictionaryEntry
 			.DidNotReceive()
-			.CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>());
+			.CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>());
 
 	private ValueTask<bool> VerifyCreateOrUpdateCalledWithGuidCount(int expectedCount)
 		=> _asyncDictionaryEntry
 			.Received(1)
-			.CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(guids => guids.Count == expectedCount));
+			.CreateOrUpdate(Arg.Is<IReadOnlyCollection<Guid>>(guids => guids.Count == expectedCount), Arg.Any<CancellationToken>());
 
 	private async ValueTask<bool> VerifyCreateOrUpdateCalledWithGuids(params Guid[] expectedGuids)
 	{
 		// Instead of using Arg.Is with a predicate, use Arg.Any and check manually
-		await _asyncDictionaryEntry.Received(1).CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>());
+		await _asyncDictionaryEntry.Received(1).CreateOrUpdate(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>());
 
 		// Get the actual argument that was passed
 		var callsReceived = _asyncDictionaryEntry.ReceivedCalls()
@@ -131,9 +146,12 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var guid = Guid.NewGuid();
 		var testStream = new MemoryStream(Encoding.UTF8.GetBytes("test content"));
-
-		_blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
-			.Returns(testStream);
+		
+		// Set up TryReadAsync to return a successful result
+		var tryReadResult = TryReadResult<Stream>.Succeeded(testStream);
+		_blobRepo
+			.TryReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
 
 		// Act
 		Stream result = await _repository.Get(guid);
@@ -141,8 +159,8 @@ public class HashedBlobRepositoryTests
 		// Assert
 		await Assert.That(result).IsNotNull();
 
-		// Verify that ReadAsync was called with the correct GUID
-		await _blobRepo.Received(1).ReadAsync(guid, Arg.Any<CancellationToken>());
+		// Verify that TryReadAsync was called with the correct GUID
+		await _blobRepo.Received(1).TryReadAsync(guid, Arg.Any<CancellationToken>());
 
 		// Verify the returned stream content
 		using var streamReader = new StreamReader(result);
@@ -155,16 +173,19 @@ public class HashedBlobRepositoryTests
 	{
 		// Arrange
 		var guid = Guid.NewGuid();
-
-		_blobRepo.ReadAsync(guid, Arg.Any<CancellationToken>())
-			.Returns((Stream?)null);
+		
+		// Set up TryReadAsync to return a failed result
+		var tryReadResult = TryReadResult<Stream>.Failed;
+		_blobRepo
+			.TryReadAsync(guid, Arg.Any<CancellationToken>())
+			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
 
 		// Act & Assert
 		await ((Func<Task>)(async () => await _repository.Get(guid)))
 			.ThrowsAsync<KeyNotFoundException>();
 
-		// Verify that ReadAsync was called with the correct GUID
-		await _blobRepo.Received(1).ReadAsync(guid, Arg.Any<CancellationToken>());
+		// Verify that TryReadAsync was called with the correct GUID
+		await _blobRepo.Received(1).TryReadAsync(guid, Arg.Any<CancellationToken>());
 	}
 
 	#endregion
@@ -189,11 +210,11 @@ public class HashedBlobRepositoryTests
 		// Assert
 		await Assert.That(result).IsEqualTo(existingGuid);
 
-		// Verify that Read was called on the entry
-		await _asyncDictionaryEntry.Received(1).Read();
+		// Verify that TryRead was called on the entry
+		await _asyncDictionaryEntry.Received(1).TryRead(Arg.Any<CancellationToken>());
 
-		// Verify that ReadAsync was called on the blob store with the existing GUID
-		await _blobRepo.Received(1).ReadAsync(existingGuid, Arg.Any<CancellationToken>());
+		// Verify that TryReadAsync was called on the blob store with the existing GUID
+		await _blobRepo.Received(1).TryReadAsync(existingGuid, Arg.Any<CancellationToken>());
 
 		// Verify that CreateOrUpdate was NOT called (since we found a match)
 		await VerifyCreateOrUpdateNotCalled();
@@ -217,7 +238,7 @@ public class HashedBlobRepositoryTests
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
 
 		// Verify that Read was called on the entry
-		await _asyncDictionaryEntry.Received(1).Read();
+		await _asyncDictionaryEntry.Received(1).TryRead(Arg.Any<CancellationToken>());
 
 		// Verify that CreateOrUpdate was called on the entry with a collection containing the new GUID
 		await VerifyCreateOrUpdateCalledWithGuidCount(1);
@@ -310,10 +331,25 @@ public class HashedBlobRepositoryTests
 		var cancellationTokenSource = new CancellationTokenSource();
 		cancellationTokenSource.Cancel();
 
+			// Configure the mocks to throw when cancellation token is used
+		_hashMap.LeaseAsync(
+			Arg.Any<string>(),
+			Arg.Is<CancellationToken>(ct => ct.IsCancellationRequested),
+			Arg.Any<Func<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
+			.Returns<ValueTask<Guid>>(x => throw new OperationCanceledException());
+
 		// Act & Assert
-		await ((Func<Task>)(async () =>
-			await _repository.Put(StandardTestData, cancellationTokenSource.Token)))
-			.ThrowsAsync<OperationCanceledException>();
+		bool exceptionThrown = false;
+		try
+		{
+			await _repository.Put(StandardTestData, cancellationTokenSource.Token);
+		}
+		catch (OperationCanceledException)
+		{
+			exceptionThrown = true;
+		}
+
+		await Assert.That(exceptionThrown).IsTrue();
 	}
 
 	[Test]
@@ -360,7 +396,7 @@ public class HashedBlobRepositoryTests
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
 
 		// Verify that Read was called on the entry
-		await _asyncDictionaryEntry.Received(1).Read();
+		await _asyncDictionaryEntry.Received(1).TryRead(Arg.Any<CancellationToken>());
 
 		// Verify that CreateOrUpdate was called on the entry with a collection containing the new GUID
 		await VerifyCreateOrUpdateCalledWithGuidCount(1);

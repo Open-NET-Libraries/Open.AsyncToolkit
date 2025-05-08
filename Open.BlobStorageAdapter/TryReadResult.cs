@@ -19,7 +19,7 @@ public readonly record struct TryReadResult<TValue>
 	/// </summary>
 	/// <param name="success">A value indicating whether the operation succeeded.</param>
 	/// <param name="value">The value obtained from the operation if successful; otherwise, default.</param>
-	public TryReadResult(bool success, TValue value)
+	private TryReadResult(bool success, TValue value)
 	{
 		Success = success;
 		Value = value;
@@ -43,5 +43,17 @@ public readonly record struct TryReadResult<TValue>
 
 			return field;
 		}
+	}
+
+	/// <summary>
+	/// Deconstructs the <see cref="TryReadResult{TValue}"/> into its components.
+	/// </summary>
+	/// <param name="success">A value indicating whether the operation succeeded.</param>
+	/// <param name="value">The value obtained from the operation if successful; otherwise, <see langword="default"/>.</param>
+	/// <remarks>Does not guard against failed or <see langword="null"/> results.</remarks>
+	public void Deconstruct(out bool success, out TValue? value)
+	{
+		success = Success;
+		value = success ? Value : default;
 	}
 }
