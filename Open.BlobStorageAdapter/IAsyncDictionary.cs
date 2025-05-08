@@ -17,4 +17,5 @@ public interface IAsyncDictionary<TKey, TValue>
 	  IDeleteAsync<TKey>
 	where TKey : notnull
 {
+	IAsyncDictionaryEntry<TKey, TValue> this[TKey key] { get; }
 }

@@ -1,4 +1,6 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿using Open.BlobStorageAdapter.AsyncItem;
+
+namespace Open.BlobStorageAdapter;
 
 public interface IAsyncDictionaryEntry<TKey, TValue>
 {
@@ -7,51 +9,32 @@ public interface IAsyncDictionaryEntry<TKey, TValue>
 	/// </summary>
 	TKey Key { get; }
 
-	/// <summary>
-	/// Checks if an entry with this key exists in the dictionary.
-	/// </summary>
-	/// <returns>
-	/// <see langword="true"/> if the entry exists;
-	/// otherwise <see langword="false"/>.
-	/// </returns>
-	ValueTask<bool> Exists();
+	/// <inheritdoc cref="IReadAsync{TKey, TValue}.ExistsAsync(TKey, CancellationToken)(TKey, CancellationToken)"/>
+	ValueTask<bool> Exists(CancellationToken cancellationToken = default);
 
-	/// <summary>
-	/// Creates a new entry with this key and the specified value.
-	/// </summary>
-	/// <param name="value">The value to store.</param>
-	/// <returns>
-	/// <see langword="true"/> if the entry was created;
-	/// otherwise <see langword="false"/>.
-	/// </returns>
-	ValueTask<bool> Create(TValue value);
+	/// <inheritdoc cref="ICreateOrUpdate{TKey, TValue}.CreateOrUpdateAsync(TKey, TValue, CancellationToken)"/>
+	ValueTask<bool> Create(TValue value, CancellationToken cancellationToken = default);
 
-	/// <summary>
-	/// Creates a new entry or updates an existing entry with this key 
-	/// and the specified value.
-	/// </summary>
-	/// <param name="value">The value to store.</param>
-	/// <returns>
-	/// <see langword="true"/> if the entry was created or updated;
-	/// otherwise <see langword="false"/>.
-	/// </returns>
-	ValueTask<bool> CreateOrUpdate(TValue value);
+	/// <inheritdoc cref="ICreateOrUpdate{TKey, TValue}.CreateOrUpdateAsync(TKey, TValue, CancellationToken)"/>
+	ValueTask<bool> CreateOrUpdate(TValue value, CancellationToken cancellationToken = default);
 
-	/// <summary>
-	/// Reads the value of the entry with this key.
-	/// </summary>
-	/// <returns>
-	/// The value of the entry,
-	/// or <see langword="null"/> if the entry does not exist.
-	/// </returns>
-	ValueTask<TValue?> Read();
+	/// <inheritdoc cref="IReadAsync{TKey, TValue}.TryReadAsync(TKey, CancellationToken)"/>
+	ValueTask<TryReadResult<TValue>> TryRead(CancellationToken cancellationToken = default);
 
-	/// <summary>
-	/// Deletes the entry with this key.
-	/// </summary>
-	/// <returns>
-	/// <see langword="true"/> if the entry was deleted;
-	/// otherwise <see langword="false"/>.
-	/// </returns>
-	ValueTask<bool> Delete();
+	/// <inheritdoc cref="IDeleteAsync{TKey}.DeleteAsync(TKey, CancellationToken)"/>
+	ValueTask<bool> Delete(CancellationToken cancellationToken = default);
+}
+
+public static class AsyncDictionaryEntryExtensions
+{
+	/// <inheritdoc cref="ReadAsyncExtensions.ReadAsync{TKey, TValue}(IReadAsync{TKey, TValue}, TKey, CancellationToken)"/>
+	public static async ValueTask<TValue?> Read<TKey, TValue>(
+		this IAsyncDictionaryEntry<TKey, TValue> source,
+		CancellationToken cancellationToken = default)
+		where TKey : notnull
+		where TValue : class
+	{
+		var result = await source.TryRead(cancellationToken).ConfigureAwait(false);
+		return result.Success ? result.Value : null;
+	}
 }

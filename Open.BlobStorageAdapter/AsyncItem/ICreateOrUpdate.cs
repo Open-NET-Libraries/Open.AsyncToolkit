@@ -13,13 +13,11 @@ public interface ICreateOrUpdate<in TKey, in TValue>
 	/// <summary>
 	/// Creates a new item or updates an existing item with the specified key.
 	/// </summary>
-	/// <param name="key">The key identifying the item.</param>
-	/// <param name="value">The value to store.</param>
-	/// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
 	/// <returns>
 	/// <see langword="true"/> if the item was created or updated;
 	/// otherwise <see langword="false"/>.
 	/// </returns>
+	/// <inheritdoc cref="ICreateAsync{TKey, TValue}.CreateAsync(TKey, TValue, CancellationToken)" />
 	ValueTask<bool> CreateOrUpdateAsync(
 		TKey key,
 		TValue value,
