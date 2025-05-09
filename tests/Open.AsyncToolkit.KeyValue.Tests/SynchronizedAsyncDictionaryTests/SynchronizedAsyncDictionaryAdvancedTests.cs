@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.KeyValue.Tests;
 
 /// <summary>
 /// Advanced stress tests for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class

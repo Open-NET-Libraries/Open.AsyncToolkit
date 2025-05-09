@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.KeyValue.Tests;
 
 /// <summary>
 /// Advanced tests specifically targeting race conditions and deadlock detection

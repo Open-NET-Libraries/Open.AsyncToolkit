@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
 /// Represents an asynchronous dictionary that provides exclusive leased access to dictionary entries.

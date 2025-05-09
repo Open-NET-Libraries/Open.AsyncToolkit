@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.KeyValue.Tests;
 
 /// <summary>
 /// Tests specifically for the lease functionality of <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/>.

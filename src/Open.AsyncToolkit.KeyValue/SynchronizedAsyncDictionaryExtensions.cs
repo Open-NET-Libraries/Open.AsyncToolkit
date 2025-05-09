@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
 /// Provides extension methods for <see cref="ISynchronizedAsyncDictionary{TKey, TValue}"/>.

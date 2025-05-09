@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
 /// Defines a dictionary-like interface for asynchronous operations 

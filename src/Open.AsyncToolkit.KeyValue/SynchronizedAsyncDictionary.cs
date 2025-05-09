@@ -1,8 +1,4 @@
-using Open.Disposable;
-using Open.Threading;
-using System.Diagnostics;
-
-namespace Open.BlobStorageAdapter;
+namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
 /// Provides synchronized access to an underlying <see cref="IAsyncDictionary{TKey, TValue}"/>.
@@ -62,15 +58,9 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		}
 	}
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
-	/// that wraps the specified <see cref="IAsyncDictionary{TKey, TValue}"/> implementation.
-	/// </summary>
-	/// <param name="innerDictionary">The underlying dictionary to provide synchronized access to.</param>
-	/// <param name="semaphorePool">The object pool for recycling SemaphoreSlim instances.</param>
 	private SynchronizedAsyncDictionary(
 		IAsyncDictionary<TKey, TValue> innerDictionary,
-		IObjectPool<Lease>? semaphorePool)
+		IObjectPool<Lease>? semaphorePool) // This could later facilitate a shared pool.
 	{
 		_innerDictionary = innerDictionary
 			?? throw new ArgumentNullException(nameof(innerDictionary));
@@ -79,17 +69,38 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			?? (_ownedPool = InterlockedArrayObjectPool.CreateAutoDisposal(static () => new Lease()));
 	}
 
+	/// <summary>
+	/// Initializes a new instance of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
+	/// that wraps the specified <see cref="IAsyncDictionary{TKey, TValue}"/> implementation.
+	/// </summary>
+	/// <param name="innerDictionary">The underlying dictionary to provide synchronized access to.</param>
 	public SynchronizedAsyncDictionary(
 		IAsyncDictionary<TKey, TValue> innerDictionary)
 		: this(innerDictionary, null) { }
 
+	private void AssertAlive()
+#if NET9_0_OR_GREATER
+		=> ObjectDisposedException.ThrowIf(_disposeState != 0, this);
+#else
+	{
+		if (_disposeState != 0)
+			throw new ObjectDisposedException(GetType().ToString());
+	}
+#endif
+
 	/// <inheritdoc />
 	public ValueTask<bool> ExistsAsync(TKey key, CancellationToken cancellationToken)
-		=> _innerDictionary.ExistsAsync(key, cancellationToken);
+	{
+		AssertAlive();
+		return _innerDictionary.ExistsAsync(key, cancellationToken);
+	}
 
 	/// <inheritdoc />
 	public ValueTask<TryReadResult<TValue>> TryReadAsync(TKey key, CancellationToken cancellationToken)
-		=> _innerDictionary.TryReadAsync(key, cancellationToken);
+	{
+		AssertAlive();
+		return _innerDictionary.TryReadAsync(key, cancellationToken);
+	}
 
 	/// <remarks>
 	/// This implementation uses a <see cref="SemaphoreSlim"/> to ensure exclusive access to each key.
@@ -106,10 +117,9 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		CancellationToken cancellationToken,
 		Func<IAsyncDictionaryEntry<TKey, TValue>, CancellationToken, ValueTask<T>> operation)
 	{
-		if (_disposeState != 0)
-			throw new ObjectDisposedException(nameof(SynchronizedAsyncDictionary<,>));
-
+		AssertAlive();
 		cancellationToken.ThrowIfCancellationRequested();
+
 		Lease lease = QueueForLease(key);
 		var semaphore = lease.Semaphore;
 
@@ -223,6 +233,9 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		GC.SuppressFinalize(this);
 	}
 
+	/// <summary>
+	/// Handler for when the <see cref="Dispose()" /> method is invoked manually.
+	/// </summary>
 	protected virtual void OnDisposing()
 	{
 		using var pool = _ownedPool;

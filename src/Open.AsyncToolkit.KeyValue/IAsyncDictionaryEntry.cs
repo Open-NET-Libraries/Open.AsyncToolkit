@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.KeyValue;
 
 public interface IAsyncDictionaryEntry<TKey, TValue>
 {

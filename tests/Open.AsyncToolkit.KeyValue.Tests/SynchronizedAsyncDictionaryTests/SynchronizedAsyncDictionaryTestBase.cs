@@ -1,4 +1,4 @@
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.KeyValue.Tests;
 
 /// <summary>
 /// Base class for all tests of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class.

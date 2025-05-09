@@ -1,23 +1,25 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
-/// Defines operations for deleting items with a generic key type.
+/// Defines operations for updating items with a generic key type.
 /// </summary>
 /// <typeparam name="TKey">
 /// The type of key used to identify items.
 /// </typeparam>
-public interface IDeleteAsync<in TKey>
+/// <typeparam name="TValue">The type of values to store.</typeparam>
+public interface IUpdateAsync<in TKey, in TValue>
 	where TKey : notnull
 {
 	/// <summary>
-	/// Deletes an item with the specified key.
+	/// Updates an existing item with the specified key.
 	/// </summary>
 	/// <returns>
-	/// <see langword="true"/> if the item was deleted;
+	/// <see langword="true"/> if the item was updated;
 	/// otherwise <see langword="false"/>.
 	/// </returns>
 	/// <inheritdoc cref="ICreateAsync{TKey, TValue}.CreateAsync(TKey, TValue, CancellationToken)" />
-	ValueTask<bool> DeleteAsync(
+	ValueTask<bool> UpdateAsync(
 		TKey key,
+		TValue value,
 		CancellationToken cancellationToken = default);
 }

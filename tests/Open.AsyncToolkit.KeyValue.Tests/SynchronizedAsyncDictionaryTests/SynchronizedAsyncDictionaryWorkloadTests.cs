@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.KeyValue.Tests;
 
 /// <summary>
 /// Advanced workload tests for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class

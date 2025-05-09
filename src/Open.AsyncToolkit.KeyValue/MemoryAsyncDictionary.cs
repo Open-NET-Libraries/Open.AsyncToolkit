@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Open.BlobStorageAdapter;
+namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
 /// Implements an in-memory <see cref="IAsyncDictionary{TKey, TValue}"/> using a <see cref="ConcurrentDictionary{TKey, TValue}"/>
