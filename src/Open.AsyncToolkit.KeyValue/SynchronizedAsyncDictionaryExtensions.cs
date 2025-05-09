@@ -27,7 +27,6 @@ public static class SynchronizedAsyncDictionaryExtensions
 	/// </summary>
 	/// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
 	/// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
-	/// <typeparam name="TResult">The type of result returned by the operation.</typeparam>
 	/// <param name="asyncDictionary">The async dictionary.</param>
 	/// <param name="key">The key identifying the entry to lease.</param>
 	/// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -48,7 +47,7 @@ public static class SynchronizedAsyncDictionaryExtensions
 				})
 			.ConfigureAwait(false);
 
-	/// <inheritdoc cref="LeaseAsync{TKey, TValue, TResult}(ISynchronizedAsyncDictionary{TKey, TValue}, TKey, CancellationToken, Func{IAsyncDictionaryEntry{TKey, TValue}, CancellationToken, ValueTask})"/>
+	/// <inheritdoc cref="LeaseAsync{TKey, TValue}(ISynchronizedAsyncDictionary{TKey, TValue}, TKey, CancellationToken, Func{IAsyncDictionaryEntry{TKey, TValue}, CancellationToken, ValueTask})"/>
 	public static async ValueTask LeaseAsync<TKey, TValue>(
 		this ISynchronizedAsyncDictionary<TKey, TValue> asyncDictionary,
 		TKey key,
@@ -66,7 +65,7 @@ public static class SynchronizedAsyncDictionaryExtensions
 	/// <returns>
 	/// The result of the provided operation.
 	/// </returns>
-	/// <inheritdoc cref="LeaseAsync{TKey, TValue, TResult}(ISynchronizedAsyncDictionary{TKey, TValue}, TKey, CancellationToken, Func{IAsyncDictionaryEntry{TKey, TValue}, CancellationToken, ValueTask})"/>
+	/// <inheritdoc cref="LeaseAsync{TKey, TValue}(ISynchronizedAsyncDictionary{TKey, TValue}, TKey, CancellationToken, Func{IAsyncDictionaryEntry{TKey, TValue}, CancellationToken, ValueTask})"/>
 	public static ValueTask<TResult> LeaseAsync<TKey, TValue, TResult>(
 		this ISynchronizedAsyncDictionary<TKey, TValue> asyncDictionary,
 		TKey key,

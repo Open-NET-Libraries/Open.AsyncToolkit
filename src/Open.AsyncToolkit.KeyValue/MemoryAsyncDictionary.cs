@@ -23,8 +23,8 @@ public class MemoryAsyncDictionary<TKey, TValue>
 		cancellationToken.ThrowIfCancellationRequested();
 
 		var result = TryGetValue(key, out var value)
-			? TryReadResult<TValue>.Succeeded(value)
-			: TryReadResult<TValue>.Failed;
+			? TryReadResult.Success(value)
+			: TryReadResult.NotFound<TValue>();
 
 		return new(result);
 	}

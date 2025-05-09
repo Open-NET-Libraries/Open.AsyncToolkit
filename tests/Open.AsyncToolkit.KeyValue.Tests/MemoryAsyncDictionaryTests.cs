@@ -236,21 +236,27 @@ public class MemoryAsyncDictionaryTests
 		// Arrange
 		var cts = new CancellationTokenSource();
 		cts.Cancel(); // Cancel before operations
-					  // Act & Assert
-		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await _asyncDictionary.ExistsAsync("key", cts.Token));
 
-		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await _asyncDictionary.TryReadAsync("key", cts.Token));
+		// Act & Assert
+		await ((Func<Task>)(async () =>
+			await _asyncDictionary.ExistsAsync("key", cts.Token)))
+			.ThrowsAsync<OperationCanceledException>();
 
-		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await _asyncDictionary.CreateAsync("key", "value", cts.Token));
+		await ((Func<Task>)(async () =>
+			await _asyncDictionary.TryReadAsync("key", cts.Token)))
+			.ThrowsAsync<OperationCanceledException>();
 
-		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await _asyncDictionary.CreateOrUpdateAsync("key", "value", cts.Token));
+		await ((Func<Task>)(async () =>
+			await _asyncDictionary.CreateAsync("key", "value", cts.Token)))
+			.ThrowsAsync<OperationCanceledException>();
 
-		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await _asyncDictionary.DeleteAsync("key", cts.Token));
+		await ((Func<Task>)(async () =>
+			await _asyncDictionary.CreateOrUpdateAsync("key", "value", cts.Token)))
+			.ThrowsAsync<OperationCanceledException>();
+
+		await ((Func<Task>)(async () =>
+			await _asyncDictionary.DeleteAsync("key", cts.Token)))
+			.ThrowsAsync<OperationCanceledException>();
 	}
 
 	#endregion

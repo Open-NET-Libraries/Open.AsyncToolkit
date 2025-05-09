@@ -6,9 +6,5 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Open.BlobStorageAdapter</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Open.BlobStorageAdapter\Open.BlobStorageAdapter.csproj" />
-  </ItemGroup>
-
+	
 </Project>

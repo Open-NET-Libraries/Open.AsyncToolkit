@@ -1,25 +1,17 @@
 ﻿namespace Open.AsyncToolkit.KeyValue;
 
+/// <summary>
+/// Represents the result of a read operation that may succeed or not found.
+/// </summary>
+/// <typeparam name="TValue"></typeparam>
 public readonly record struct TryReadResult<TValue>
 {
-	/// <summary>
-	/// Creates a successful result containing the specified value.
-	/// </summary>
-	/// <param name="value">The value that was successfully read.</param>
-	/// <returns>A new <see cref="TryReadResult{TValue}"/> indicating success with the specified value.</returns>
-	public static TryReadResult<TValue> Succeeded(TValue value) => new(true, value);
-
-	/// <summary>
-	/// A pre-initialized failed result with a default value.
-	/// </summary>
-	public static readonly TryReadResult<TValue> Failed = new(false, default!);
-
 	/// <summary>
 	/// Initializes a new instance of the <see cref="TryReadResult{TValue}"/> struct.
 	/// </summary>
 	/// <param name="success">A value indicating whether the operation succeeded.</param>
 	/// <param name="value">The value obtained from the operation if successful; otherwise, default.</param>
-	private TryReadResult(bool success, TValue value)
+	internal TryReadResult(bool success, TValue value)
 	{
 		Success = success;
 		Value = value;
@@ -56,4 +48,30 @@ public readonly record struct TryReadResult<TValue>
 		success = Success;
 		value = success ? Value : default;
 	}
+
+	/// <summary>
+	/// A pre-initialized failed result with a default value.
+	/// </summary>
+	public static readonly TryReadResult<TValue> NotFound = new(false, default!);
+}
+
+/// <summary>
+/// Provides static methods for creating <see cref="TryReadResult{TValue}"/> instances.
+/// </summary>
+public static class TryReadResult
+{
+	/// <summary>
+	/// Creates a successful result containing the specified value.
+	/// </summary>
+	/// <param name="value">The value that was successfully read.</param>
+	/// <returns>A new <see cref="TryReadResult{TValue}"/> indicating success with the specified value.</returns>
+	public static TryReadResult<TValue> Success<TValue>(TValue value)
+		=> new(true, value);
+
+	/// <summary>
+	/// A pre-initialized failed result with a default value.
+	/// </summary>
+	public static TryReadResult<TValue> NotFound<TValue>()
+		=> TryReadResult<TValue>.NotFound;
+
 }

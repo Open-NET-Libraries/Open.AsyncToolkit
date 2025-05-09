@@ -6,7 +6,7 @@
 /// </summary>
 /// <typeparam name="TKey">The type of key.</typeparam>
 /// <typeparam name="TValue">The type of value.</typeparam>
-public record AsyncDictionaryEntry<TKey, TValue>
+public readonly record struct AsyncDictionaryEntry<TKey, TValue>
 	: IAsyncDictionaryEntry<TKey, TValue>
 	where TKey : notnull
 {

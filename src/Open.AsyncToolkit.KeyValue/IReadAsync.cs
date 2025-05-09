@@ -14,6 +14,7 @@ public interface IReadAsync<in TKey, TValue>
 	/// <summary>
 	/// Checks if an entry with the specified key exists.
 	/// </summary>
+	/// <param name="key">The key identifying the item.</param>
 	/// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
 	/// <returns>
 	/// <see langword="true"/> if the entry exists;
@@ -38,6 +39,9 @@ public interface IReadAsync<in TKey, TValue>
 		CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Provides extension methods for <see cref="IReadAsync{TKey, TValue}"/>.
+/// </summary>
 public static class ReadAsyncExtensions
 {
 	/// <summary>

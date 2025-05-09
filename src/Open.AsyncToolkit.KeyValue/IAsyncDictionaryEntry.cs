@@ -1,5 +1,9 @@
 ﻿namespace Open.AsyncToolkit.KeyValue;
 
+/// <summary>
+/// Represents an entry in an asynchronous dictionary.
+/// </summary>
+/// <inheritdoc cref="IAsyncDictionary{TKey, TValue}"/>
 public interface IAsyncDictionaryEntry<TKey, TValue>
 {
 	/// <summary>
@@ -7,7 +11,7 @@ public interface IAsyncDictionaryEntry<TKey, TValue>
 	/// </summary>
 	TKey Key { get; }
 
-	/// <inheritdoc cref="IReadAsync{TKey, TValue}.ExistsAsync(TKey, CancellationToken)(TKey, CancellationToken)"/>
+	/// <inheritdoc cref="IReadAsync{TKey, TValue}.ExistsAsync(TKey, CancellationToken)"/>
 	ValueTask<bool> Exists(CancellationToken cancellationToken = default);
 
 	/// <inheritdoc cref="ICreateOrUpdate{TKey, TValue}.CreateOrUpdateAsync(TKey, TValue, CancellationToken)"/>
@@ -23,6 +27,9 @@ public interface IAsyncDictionaryEntry<TKey, TValue>
 	ValueTask<bool> Delete(CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Provides extension methods for <see cref="IAsyncDictionaryEntry{TKey, TValue}"/>.
+/// </summary>
 public static class AsyncDictionaryEntryExtensions
 {
 	/// <inheritdoc cref="ReadAsyncExtensions.ReadAsync{TKey, TValue}(IReadAsync{TKey, TValue}, TKey, CancellationToken)"/>
