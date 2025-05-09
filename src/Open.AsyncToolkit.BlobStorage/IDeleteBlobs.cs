@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.BlobStorage;
 
 /// <summary>
 /// Defines operations for deleting binary data (blobs) using string keys.

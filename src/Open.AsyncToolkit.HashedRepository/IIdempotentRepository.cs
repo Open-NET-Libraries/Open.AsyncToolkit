@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.BlobStorage.HashedRepository;
 
 /// <summary>
 /// Defines operations for an idempotent repository where content is identified 

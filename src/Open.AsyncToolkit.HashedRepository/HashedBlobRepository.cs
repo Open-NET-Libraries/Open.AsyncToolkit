@@ -1,7 +1,4 @@
-﻿using System.Buffers;
-using System.Collections.Frozen;
-
-namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.BlobStorage.HashedRepository;
 
 /// <summary>
 /// An opinionated means of storing blobs in a blob store
@@ -35,7 +32,12 @@ public class HashedBlobRepository(
 			async (entry, ct) =>
 			{
 				var guids = await entry.Read(ct)
-					?? FrozenSet<Guid>.Empty;
+					.ConfigureAwait(false)
+#if NET9_0_OR_GREATER
+					?? System.Collections.Frozen.FrozenSet<Guid>.Empty;
+#else
+					?? System.Collections.Immutable.ImmutableHashSet<Guid>.Empty;
+#endif
 
 				if (guids.Count > 0)
 				{
@@ -74,7 +76,12 @@ public class HashedBlobRepository(
 				}
 
 				var newGuid = Guid.NewGuid();
-				guids = guids.Append(newGuid).ToFrozenSet();
+				guids = guids.Append(newGuid)
+#if NET9_0_OR_GREATER
+					.ToFrozenSet();
+#else
+					.ToImmutableHashSet();
+#endif
 				await entry.CreateOrUpdate(guids, ct).ConfigureAwait(false);
 
 				return newGuid;
@@ -100,10 +107,10 @@ public class HashedBlobRepository(
 		while (totalRead < data.Length)
 		{
 			int toRead = Math.Min(buffer.Length, data.Length - totalRead);
-			int bytesRead = await stream.ReadAsync(buffer[..toRead])
+			int bytesRead = await stream.ReadAsync(buffer.Slice(0, toRead))
 				.ConfigureAwait(false);
 
-			if (bytesRead == 0 || !buffer.Span[..bytesRead]
+			if (bytesRead == 0 || !buffer.Span.Slice(0, bytesRead)
 				.SequenceEqual(data.Span.Slice(totalRead, bytesRead)))
 			{
 				return false;

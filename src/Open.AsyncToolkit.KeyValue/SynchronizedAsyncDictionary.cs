@@ -11,21 +11,27 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 	, IDisposable
 	where TKey : notnull
 {
-	private readonly IAsyncDictionary<TKey, TValue> _innerDictionary;
-	// Main lock for dictionary access
-	private readonly ReaderWriterLockSlim _dictionaryLock = new(LockRecursionPolicy.NoRecursion);
-
 	// Dictionary of semaphores - managed with _dictionaryLock
 	private readonly Dictionary<TKey, Lease> _leases = [];
-	private readonly InterlockedArrayObjectPool<Lease>? _ownedPool;
-	private readonly IObjectPool<Lease> _leasePool;
 	private int _disposeState;
+
+	private readonly IAsyncDictionary<TKey, TValue> _innerDictionary;
+
+	// Main lock for dictionary access. Is disposed of in OnDisposing() via using.
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2213 // Disposable fields should be disposed
+	private readonly ReaderWriterLockSlim _dictionaryLock
+		= new(LockRecursionPolicy.NoRecursion);
+	private readonly IObjectPool<Lease> _leasePool;
+	private readonly InterlockedArrayObjectPool<Lease>? _ownedPool;
+#pragma warning restore CA2213 // Disposable fields should be disposed
+#pragma warning restore IDE0079 // Remove unnecessary suppression
 
 	// Track active operations for each key
 	private sealed class Lease() : IDisposable
 	{
 		public SemaphoreSlim Semaphore = new(1, 1);
-		public int ActiveLeaseRequests = 0;
+		public int ActiveLeaseRequests;
 		private bool disposedValue;
 
 		private void Dispose(bool disposing)
@@ -117,6 +123,9 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		CancellationToken cancellationToken,
 		Func<IAsyncDictionaryEntry<TKey, TValue>, CancellationToken, ValueTask<T>> operation)
 	{
+		if (operation is null) throw new ArgumentNullException(nameof(operation));
+		Contract.EndContractBlock();
+
 		AssertAlive();
 		cancellationToken.ThrowIfCancellationRequested();
 
@@ -234,6 +243,14 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 	}
 
 	/// <summary>
+	/// Finalizer for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class.
+	/// </summary>
+	~SynchronizedAsyncDictionary()
+	{
+		Dispose(false);
+	}
+
+	/// <summary>
 	/// Handler for when the <see cref="Dispose()" /> method is invoked manually.
 	/// </summary>
 	protected virtual void OnDisposing()
@@ -251,10 +268,14 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			int currentCount = lease.Semaphore.CurrentCount;
 			Debug.Assert(currentCount == 1, "Semaphore not released before disposal.");
 
-			if (activeCount != 0 || currentCount != 1)
+			if (activeCount != 0)
 			{
 				try { lease.Dispose(); }
-				catch { }
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA1031 // Do not catch general exception types
+				catch (Exception ex) { Debug.WriteLine(ex.ToString()); }
+#pragma warning restore CA1031 // Do not catch general exception types
+#pragma warning restore IDE0079 // Remove unnecessary suppression
 
 				continue;
 			}
@@ -269,7 +290,7 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 	/// Disposes the synchronization resources used by this dictionary.
 	/// </summary>
 	/// <param name="disposing">Whether this is being called from the Dispose method.</param>
-	protected void Dispose(bool disposing)
+	protected virtual void Dispose(bool disposing)
 	{
 		if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
 			return;

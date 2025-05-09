@@ -1,4 +1,7 @@
-﻿namespace Open.AsyncToolkit.KeyValue;
+﻿
+using System.Diagnostics.Contracts;
+
+namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
 /// Represents an entry in an asynchronous dictionary.
@@ -39,6 +42,9 @@ public static class AsyncDictionaryEntryExtensions
 		where TKey : notnull
 		where TValue : class
 	{
+		if (source is null) throw new ArgumentNullException(nameof(source));
+		Contract.EndContractBlock();
+
 		var result = await source.TryRead(cancellationToken).ConfigureAwait(false);
 		return result.Success ? result.Value : null;
 	}

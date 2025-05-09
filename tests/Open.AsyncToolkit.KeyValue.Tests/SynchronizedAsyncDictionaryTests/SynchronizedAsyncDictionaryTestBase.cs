@@ -12,9 +12,11 @@ public partial class SynchronizedAsyncDictionaryTests
 
 	private MemoryAsyncDictionary<string, string> _memoryDict = null!;
 	private SynchronizedAsyncDictionary<string, string> _sut = null!;
+#pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
 	private ISynchronizedAsyncDictionary<string, string> _asyncDictionary = null!;
 #pragma warning restore CA1859 // Use concrete types when possible for improved performance
+#pragma warning restore IDE0079 // Remove unnecessary suppression
 
 	[Before(Test)]
 	public void Setup()

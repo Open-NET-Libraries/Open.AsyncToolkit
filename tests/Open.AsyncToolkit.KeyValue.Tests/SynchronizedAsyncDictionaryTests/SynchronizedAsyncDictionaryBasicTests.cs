@@ -87,8 +87,8 @@ public partial class SynchronizedAsyncDictionaryTests
 		// Arrange
 		const string key = "test-key";
 		// Create a cancelled token
-		var cts = new CancellationTokenSource();
-		cts.Cancel();
+		using var cts = new CancellationTokenSource();
+		await cts.CancelAsync();
 
 		// Act & Assert
 		try

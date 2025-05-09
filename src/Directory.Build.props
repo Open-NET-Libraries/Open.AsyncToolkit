@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="..\Directory.Build.props" Condition="Exists('..\Directory.Build.props')" />
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net9.0;</TargetFrameworks>
+  </PropertyGroup>
+</Project>

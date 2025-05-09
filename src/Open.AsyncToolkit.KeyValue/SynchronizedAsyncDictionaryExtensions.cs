@@ -38,14 +38,17 @@ public static class SynchronizedAsyncDictionaryExtensions
 		CancellationToken cancellationToken,
 		Func<IAsyncDictionaryEntry<TKey, TValue>, CancellationToken, ValueTask> operation)
 		where TKey : notnull
-		=> await asyncDictionary
+	{
+		if (asyncDictionary is null) throw new ArgumentNullException(nameof(asyncDictionary));
+		await asyncDictionary
 			.LeaseAsync(
 				key, cancellationToken, async (e, ct) =>
 				{
-					await operation(e, ct);
+					await operation(e, ct).ConfigureAwait(false);
 					return true;
 				})
 			.ConfigureAwait(false);
+	}
 
 	/// <inheritdoc cref="LeaseAsync{TKey, TValue}(ISynchronizedAsyncDictionary{TKey, TValue}, TKey, CancellationToken, Func{IAsyncDictionaryEntry{TKey, TValue}, CancellationToken, ValueTask})"/>
 	public static async ValueTask LeaseAsync<TKey, TValue>(
@@ -53,14 +56,17 @@ public static class SynchronizedAsyncDictionaryExtensions
 		TKey key,
 		Func<IAsyncDictionaryEntry<TKey, TValue>, ValueTask> operation)
 		where TKey : notnull
-		=> await asyncDictionary
+	{
+		if (asyncDictionary is null) throw new ArgumentNullException(nameof(asyncDictionary));
+		await asyncDictionary
 			.LeaseAsync(
 				key, default, async (e, _) =>
 				{
-					await operation(e);
+					await operation(e).ConfigureAwait(false);
 					return true;
 				})
 			.ConfigureAwait(false);
+	}
 
 	/// <returns>
 	/// The result of the provided operation.
@@ -71,6 +77,9 @@ public static class SynchronizedAsyncDictionaryExtensions
 		TKey key,
 		Func<IAsyncDictionaryEntry<TKey, TValue>, ValueTask<TResult>> operation)
 		where TKey : notnull
-		=> asyncDictionary
+	{
+		if (asyncDictionary is null) throw new ArgumentNullException(nameof(asyncDictionary));
+		return asyncDictionary
 			.LeaseAsync(key, CancellationToken.None, (e, _) => operation(e));
+	}
 }

@@ -15,8 +15,8 @@ public partial class SynchronizedAsyncDictionaryTests
 	{
 		// Arrange
 		const string key = "cancel-test-key";
-		var cts = new CancellationTokenSource();
-		cts.Cancel(); // Pre-cancel the token
+		using var cts = new CancellationTokenSource();
+		await cts.CancelAsync(); // Pre-cancel the token
 
 		// Act & Assert
 		try
@@ -57,7 +57,7 @@ public partial class SynchronizedAsyncDictionaryTests
 				TryReadResult<string> readResult = await entry.TryRead(ct);
 
 				// Cancel the token during the operation
-				cts.Cancel();
+				await cts.CancelAsync();
 
 				// This delay should be interrupted by cancellation
 				try

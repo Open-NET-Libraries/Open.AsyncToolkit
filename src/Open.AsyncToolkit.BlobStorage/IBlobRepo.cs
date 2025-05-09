@@ -1,4 +1,4 @@
-namespace Open.BlobStorageAdapter;
+namespace Open.AsyncToolkit.BlobStorage;
 
 /// <summary>
 /// Defines operations for storing and retrieving binary data (blobs) 

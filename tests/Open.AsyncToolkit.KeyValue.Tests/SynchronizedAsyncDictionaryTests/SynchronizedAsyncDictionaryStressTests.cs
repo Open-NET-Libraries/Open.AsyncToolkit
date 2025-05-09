@@ -136,11 +136,12 @@ public partial class SynchronizedAsyncDictionaryTests
 								}
 								else
 								{                                    // Write operation (10%)
-                                    await PerformWriteOperation(sut, key);
-                                    operations.AddOrUpdate("writes", 1, (_, v) => v + 1);
+									await PerformWriteOperation(sut, key);
+									operations.AddOrUpdate("writes", 1, (_, v) => v + 1);
 								}
 
-								break;							case 2: // Write-heavy
+								break;
+							case 2: // Write-heavy
 								if (opSelector < 0.2)
 								{
 									// Read operation (20%)
@@ -154,7 +155,8 @@ public partial class SynchronizedAsyncDictionaryTests
 									operations.AddOrUpdate("writes", 1, (_, v) => v + 1);
 								}
 
-								break;							case 3: // Delete-heavy
+								break;
+							case 3: // Delete-heavy
 								if (opSelector < 0.3)
 								{
 									// Read operation (30%)
@@ -174,7 +176,8 @@ public partial class SynchronizedAsyncDictionaryTests
 									operations.AddOrUpdate("deletes", 1, (_, v) => v + 1);
 								}
 
-								break;							case 0: // High contention
+								break;
+							case 0: // High contention
 							case 4: // Mixed operations
 							default:
 								if (opSelector < 0.4)
@@ -313,7 +316,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		}
 
 		// Output statistics
-		Console.WriteLine($"Comprehensive Stress Test Results:");
+		Console.WriteLine("Comprehensive Stress Test Results:");
 		Console.WriteLine($"  Keys: {totalKeys}");
 		Console.WriteLine($"  Threads: {threadCount}");
 		Console.WriteLine($"  Operations: {threadCount * operationsPerThread:N0}");

@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.Tests;
 
 /// <summary>
 /// Provides extension methods for TUnit to enable more elegant exception testing.

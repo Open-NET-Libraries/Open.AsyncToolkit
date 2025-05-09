@@ -1,4 +1,4 @@
-﻿namespace Open.BlobStorageAdapter;
+﻿namespace Open.AsyncToolkit.BlobStorage;
 
 /// <summary>
 /// Defines operations for updating binary data (blobs) with a generic key type.

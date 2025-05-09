@@ -1,7 +1,7 @@
 using Open.BlobStorageAdapter.FileSystem;
 using System.Text;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.Tests;
 
 /// <summary>
 /// Tests for the <see cref="FileSystemBlobStore"/> class.

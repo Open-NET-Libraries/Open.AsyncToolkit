@@ -3,10 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5BC16F49-1231-4D8C-8638-8631DF182980}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Open.AsyncToolkit.KeyValue", "src\Open.AsyncToolkit.KeyValue\Open.AsyncToolkit.KeyValue.csproj", "{89F6E3CD-4F57-4EE3-86A5-9B1242179C8A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A7829E28-62A0-4EBC-8A27-AAB60D962C60}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Directory.Build.props = tests\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Open.AsyncToolkit.KeyValue.Tests", "tests\Open.AsyncToolkit.KeyValue.Tests\Open.AsyncToolkit.KeyValue.Tests.csproj", "{B9BC2951-79ED-4C54-BC01-AE1EAF131304}"
 EndProject
@@ -14,8 +20,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage", "src\Open.AsyncToolkit.BlobStorage\Open.AsyncToolkit.BlobStorage.csproj", "{186DAF6A-91FA-6133-89F0-92C0DFBDCECD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage.FileSystem", "src\Open.AsyncToolkit.BlobStorage.FileSystem\Open.AsyncToolkit.BlobStorage.FileSystem.csproj", "{1524699F-C014-18D0-926F-88FF0967B0BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage.HashedRepository", "src\Open.AsyncToolkit.HashedRepository\Open.AsyncToolkit.BlobStorage.HashedRepository.csproj", "{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.Tests", "tests\Open.AsyncToolkit.Tests\Open.AsyncToolkit.Tests.csproj", "{019316BE-FD26-2AF2-1731-7DD8B55E247D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +46,22 @@ Global
 		{B9BC2951-79ED-4C54-BC01-AE1EAF131304}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9BC2951-79ED-4C54-BC01-AE1EAF131304}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9BC2951-79ED-4C54-BC01-AE1EAF131304}.Release|Any CPU.Build.0 = Release|Any CPU
+		{186DAF6A-91FA-6133-89F0-92C0DFBDCECD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{186DAF6A-91FA-6133-89F0-92C0DFBDCECD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{186DAF6A-91FA-6133-89F0-92C0DFBDCECD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{186DAF6A-91FA-6133-89F0-92C0DFBDCECD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1524699F-C014-18D0-926F-88FF0967B0BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1524699F-C014-18D0-926F-88FF0967B0BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1524699F-C014-18D0-926F-88FF0967B0BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1524699F-C014-18D0-926F-88FF0967B0BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{019316BE-FD26-2AF2-1731-7DD8B55E247D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{019316BE-FD26-2AF2-1731-7DD8B55E247D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{019316BE-FD26-2AF2-1731-7DD8B55E247D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{019316BE-FD26-2AF2-1731-7DD8B55E247D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -38,6 +69,10 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{89F6E3CD-4F57-4EE3-86A5-9B1242179C8A} = {5BC16F49-1231-4D8C-8638-8631DF182980}
 		{B9BC2951-79ED-4C54-BC01-AE1EAF131304} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
+		{186DAF6A-91FA-6133-89F0-92C0DFBDCECD} = {5BC16F49-1231-4D8C-8638-8631DF182980}
+		{1524699F-C014-18D0-926F-88FF0967B0BD} = {5BC16F49-1231-4D8C-8638-8631DF182980}
+		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29} = {5BC16F49-1231-4D8C-8638-8631DF182980}
+		{019316BE-FD26-2AF2-1731-7DD8B55E247D} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {71FF8EB2-F3E3-47D3-A1DF-931217A231AF}

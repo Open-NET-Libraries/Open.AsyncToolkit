@@ -2,7 +2,7 @@ using NSubstitute;
 using System.Collections.Frozen;
 using System.Text;
 
-namespace Open.BlobStorageAdapter.Tests;
+namespace Open.AsyncToolkit.Tests;
 
 /// <summary>
 /// Tests for the <see cref="HashedBlobRepository"/> class.
@@ -123,9 +123,7 @@ public class HashedBlobRepositoryTests
 
 		// Check that we received exactly one call and validate the argument
 		if (callsReceived.Count != 1)
-		{
 			return false;
-		}
 
 		// Get the actual argument
 		var actualGuids = callsReceived[0].GetArguments()[0] as IReadOnlyCollection<Guid>;

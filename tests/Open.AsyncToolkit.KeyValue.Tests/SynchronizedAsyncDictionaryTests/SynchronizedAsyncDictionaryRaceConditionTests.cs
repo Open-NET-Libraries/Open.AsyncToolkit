@@ -29,7 +29,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		const int decrementsPerThread = 500;
 
 		var memoryDict = new MemoryAsyncDictionary<string, int>();
-		var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
+		using var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
 
 		// Expected final value: should equal initial if increments and decrements match
 		const int expectedFinalValue = initialValue;
@@ -110,7 +110,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		const int cycles = 100; const int readThreads = 15;
 
 		var memoryDict = new MemoryAsyncDictionary<string, int>();
-		var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
+		using var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
 
 		// Set initial value
 		memoryDict[key] = initialValue;
@@ -223,7 +223,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		Task completedTask = await Task.WhenAny(volatileTask, timeoutTask);
 
 		// Stop the readers
-		cancellationSource.Cancel();
+		await cancellationSource.CancelAsync();
 
 		// Wait for all readers to finish
 		await Task.WhenAll(readerTasks);
@@ -251,7 +251,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		const int operationCount = 200;
 
 		var memoryDict = new MemoryAsyncDictionary<string, int>();
-		var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
+		using var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
 
 		// Generate keys
 		string[] keys = Enumerable.Range(0, keyCount)
@@ -347,7 +347,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		const string key2 = $"{RaceTestPrefix}deadlock-b";
 
 		var memoryDict = new MemoryAsyncDictionary<string, int>();
-		var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
+		using var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
 
 		// Initialize dictionary
 		memoryDict[key1] = 1;
@@ -454,7 +454,7 @@ public partial class SynchronizedAsyncDictionaryTests
 		const int operationsPerThread = 20;
 
 		var memoryDict = new MemoryAsyncDictionary<string, int>();
-		var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
+		using var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
 
 		// Set initial value
 		memoryDict[key] = 0;

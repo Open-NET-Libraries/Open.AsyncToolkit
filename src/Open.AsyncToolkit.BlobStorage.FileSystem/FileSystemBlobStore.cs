@@ -1,23 +1,14 @@
-namespace Open.BlobStorageAdapter.FileSystem;
+namespace Open.AsyncToolkit.BlobStorage.FileSystem;
 
 /// <summary>
 /// Implementation of <see cref="IBlobStore"/> that uses the file system to store blobs.
 /// Each blob is stored as a separate file in a directory structure.
 /// </summary>
-public class FileSystemBlobStore : IBlobStore
+public sealed class FileSystemBlobStore : IBlobStore
 {
 	private readonly string _basePath;
 	private static readonly char[] InvalidCharacters = Path.GetInvalidFileNameChars();
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="FileSystemBlobStore"/> class.
-	/// </summary>
-	/// <param name="basePath">The base directory path where blobs will be stored.</param>
-	/// <exception cref="ArgumentNullException">Thrown when basePath is null.</exception>
-	/// <remarks>
-	/// This constructor assumes the directory already exists. Use the static <see cref="Create"/> method 
-	/// if you want the directory to be created automatically.
-	/// </remarks>
 	private FileSystemBlobStore(string basePath)
 		=> _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
 
@@ -96,6 +87,8 @@ public class FileSystemBlobStore : IBlobStore
 			useAsync: true);
 	}
 
+	/// <returns><see langword="true"/> if successful; otherwise <see langword="false"/> if not found.</returns>
+	/// <inheritdoc cref="IReadAsync{TKey, TValue}.TryReadAsync(TKey, CancellationToken)" />
 	public bool TryRead(
 		string key,
 #if NETSTANDARD2_0
@@ -180,19 +173,21 @@ public class FileSystemBlobStore : IBlobStore
 				if (File.Exists(tempPath))
 					File.Delete(tempPath);
 			}
-			catch
+			catch (IOException)
 			{
 				// Ignore deletion errors on cleanup
 			}
 		}
 	}
 
+	/// <inheritdoc />
 	public ValueTask<bool> CreateAsync(
 		string key,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
 		CancellationToken cancellationToken = default)
 		=> WriteAsync(key, false, writeHandler, cancellationToken);
 
+	/// <inheritdoc />
 	public ValueTask<bool> CreateOrUpdateAsync(
 		string key,
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
@@ -211,16 +206,14 @@ public class FileSystemBlobStore : IBlobStore
 		string path = GetPath(key);
 
 		if (!File.Exists(path))
-		{
 			return false;
-		}
 
 		try
 		{
 			File.Delete(path);
 			return true;
 		}
-		catch
+		catch (IOException)
 		{
 			return false;
 		}
@@ -238,6 +231,11 @@ public class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+	[System.Diagnostics.CodeAnalysis.SuppressMessage(
+		"Reliability", "CA2000:Dispose objects before losing scope",
+		Justification = "Intentional to provide the stream to the caller.")]
+#pragma warning restore IDE0079 // Remove unnecessary suppression
 	ValueTask<TryReadResult<Stream>> IReadAsync<string, Stream>.TryReadAsync(
 		string key,
 		CancellationToken cancellationToken)
@@ -246,8 +244,8 @@ public class FileSystemBlobStore : IBlobStore
 		TryRead(key, out var stream);
 		return new ValueTask<TryReadResult<Stream>>(
 			stream is not null
-				? TryReadResult<Stream>.Succeeded(stream)
-				: TryReadResult<Stream>.Failed);
+				? TryReadResult.Success(stream)
+				: TryReadResult.NotFound<Stream>());
 	}
 
 	/// <inheritdoc />

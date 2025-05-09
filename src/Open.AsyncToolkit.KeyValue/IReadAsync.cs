@@ -62,6 +62,9 @@ public static class ReadAsyncExtensions
 		where TKey : notnull
 		where TValue : class
 	{
+		if (source is null) throw new ArgumentNullException(nameof(source));
+		Contract.EndContractBlock();
+
 		var result = await source.TryReadAsync(key, cancellationToken).ConfigureAwait(false);
 		return result.Success ? result.Value : null;
 	}
