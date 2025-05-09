@@ -157,20 +157,6 @@ await dictionary.CreateAsync("key", "value");
 var blobStore = FileSystemBlobStore.GetOrCreate("./blobs");
 ```
 
-## Future Direction
-
-This toolkit is actively under development. Future additions may include:
-
-- Message queue interfaces and implementations
-- Extended cloud storage providers
-- More specialized repositories
-- Caching abstractions and implementations
-- Event sourcing patterns
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
