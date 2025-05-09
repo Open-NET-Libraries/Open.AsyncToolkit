@@ -1,4 +1,5 @@
 using Open.Disposable;
+using Open.Threading;
 using System.Diagnostics;
 
 namespace Open.BlobStorageAdapter;
@@ -43,6 +44,15 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 				disposedValue = true;
 			}
 		}
+
+		public Lease Reserve()
+		{
+			Interlocked.Increment(ref ActiveLeaseRequests);
+			return this;
+		}
+
+		public int Decrement()
+			=> Interlocked.Decrement(ref ActiveLeaseRequests);
 
 		public void Dispose()
 		{
@@ -100,44 +110,10 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			throw new ObjectDisposedException(nameof(SynchronizedAsyncDictionary<,>));
 
 		cancellationToken.ThrowIfCancellationRequested();
+		Lease lease = QueueForLease(key);
+		var semaphore = lease.Semaphore;
 
-		SemaphoreSlim semaphore;
-		Lease? lease;
-		// Get or create a synchronization lock for this key
-		_dictionaryLock.EnterUpgradeableReadLock();
-		try
-		{
-			if (!_leases.TryGetValue(key, out lease))
-			{
-				// Lease doesn't exist yet. Let's get a new one.
-				_dictionaryLock.EnterWriteLock();
-				try
-				{
-					// Double check after acquiring write lock
-					if (!_leases.TryGetValue(key, out lease))
-					{
-						// Create a new semaphore entry
-						lease = _leasePool.Take();
-						_leases.Add(key, lease);
-					}
-				}
-				finally
-				{
-					_dictionaryLock.ExitWriteLock();
-				}
-			}
-
-			// Track that we're starting an operation
-			Interlocked.Increment(ref lease.ActiveLeaseRequests);
-			semaphore = lease.Semaphore;
-		}
-		finally
-		{
-			_dictionaryLock.ExitUpgradeableReadLock();
-		}
-
-		T result;
-
+		// At this point we own a pending lease and need to be sure to decrement it when we're done.
 		try
 		{
 			// Wait for exclusive access to the key
@@ -147,7 +123,7 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			{
 				// Execute the operation with exclusive access
 				var entry = _innerDictionary[key];
-				result = await operation(entry, cancellationToken).ConfigureAwait(false);
+				return await operation(entry, cancellationToken).ConfigureAwait(false);
 			}
 			finally
 			{
@@ -157,44 +133,81 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		}
 		finally
 		{
-			// Operation completed, check if we can remove the semaphore
-			_dictionaryLock.EnterUpgradeableReadLock();
-			try
-			{
-				if (_leases.TryGetValue(key, out lease))
-				{
-					// Decrement active operations count
-					int remainingOperations = Interlocked.Decrement(ref lease.ActiveLeaseRequests);                    // If this was the last operation and semaphore is available, we can remove it
-					if (remainingOperations == 0 && lease.Semaphore.CurrentCount == 1)
-					{
-						_dictionaryLock.EnterWriteLock();
-						try
-						{
-							// Double check after acquiring write lock
-							if (_leases.TryGetValue(key, out lease) &&
-								lease.ActiveLeaseRequests == 0)
-							{
-								Debug.Assert(lease.Semaphore.CurrentCount == 1, "Semaphore not released before disposal.");
-								// Remove the lease and return the semaphore to the pool while holding
-								// the write lock to ensure complete thread safety
-								_leases.Remove(key);
-								_leasePool.Give(lease);
-							}
-						}
-						finally
-						{
-							_dictionaryLock.ExitWriteLock();
-						}
-					}
-				}
-			}
-			finally
-			{
-				_dictionaryLock.ExitUpgradeableReadLock();
-			}
+			Cleanup();
 		}
 
-		return result;
+		Lease QueueForLease(TKey key)
+		{
+			Lease? lease;
+			using (var readLock = _dictionaryLock.ReadLock())
+			{
+				if (_leases.TryGetValue(key, out lease))
+					return lease.Reserve();
+			}
+
+			// Get or create a synchronization lock for this key
+			using var upgradableRead = _dictionaryLock.UpgradableReadLock();
+
+			if (_leases.TryGetValue(key, out lease))
+				return lease.Reserve();
+
+			// Lease doesn't exist yet. Let's get a new one.
+			using var writeLock = _dictionaryLock.WriteLock();
+
+			// At this point, because of how upgradeable locks work, there should not be an existing lease.
+			Debug.Assert(!_leases.ContainsKey(key));
+
+			// Create a new semaphore entry
+			lease = _leasePool.Take();
+
+			// Preemptively reserve before adding.
+			_leases.Add(key, lease.Reserve());
+			return lease;
+		}
+
+		void Cleanup()
+		{
+			// Next step, at this point it is safe to decrement the active operations count.
+			// If we are not the last operation, so we can return now.
+			if (lease.Decrement() != 0) return;
+
+			// After this, another thread may end up being responsible for cleaning up the semaphore.
+			// So we get a read lock and check if we are still the lease in the dictionary and if our count is not zero, we're done.
+			// If we are not the lease, we need to check if we can remove the semaphore.
+
+			using (var readLock = _dictionaryLock.ReadLock())
+			{
+				if (!LeaseIsReadyForRemoval())
+				{
+					return;
+				}
+			}
+
+			// Get or create a synchronization lock for this key
+			using var upgradableRead = _dictionaryLock.UpgradableReadLock();
+			if (!LeaseIsReadyForRemoval())
+			{
+				return;
+			}
+
+			// At this point we are sure there are no more active operations on this lease and it can be removed.
+			Debug.Assert(lease.Semaphore.CurrentCount == 1, "The semaphore must not be in use.");
+
+			using var writeLock = _dictionaryLock.WriteLock();
+			// Remove the lease and return the semaphore to the pool while holding
+			// the write lock to ensure complete thread safety
+			bool removed = _leases.Remove(key);
+			Debug.Assert(removed, "Lease should be removed from the dictionary.");
+			_leasePool.Give(lease);
+
+			bool LeaseIsReadyForRemoval()
+			{
+				// If there is no lease kept, we are not the active lease, or the count is not zero, we can return now.
+				return _leases.TryGetValue(key, out Lease? activeLease)
+					&& lease == activeLease
+					&& lease.ActiveLeaseRequests == 0;
+			}
+		}
 	}
 
 	/// <summary>
@@ -210,51 +223,45 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		GC.SuppressFinalize(this);
 	}
 
+	protected virtual void OnDisposing()
+	{
+		using var pool = _ownedPool;
+		using var _ = _dictionaryLock;
+		using var writeLock = _dictionaryLock.WriteLock();
+
+		foreach (var lease in _leases.Values)
+		{
+			// If the semaphore is not release, we have a problem and need to dispose of it to prevent issues.
+			int activeCount = lease.ActiveLeaseRequests;
+			Debug.Assert(activeCount != 0, "Lease still active before disposal.");
+
+			int currentCount = lease.Semaphore.CurrentCount;
+			Debug.Assert(currentCount == 1, "Semaphore not released before disposal.");
+
+			if (activeCount != 0 || currentCount != 1)
+			{
+				try { lease.Dispose(); }
+				catch { }
+
+				continue;
+			}
+
+			if (_ownedPool is null) _leasePool.Give(lease);
+		}
+
+		_leases.Clear();
+	}
+
 	/// <summary>
 	/// Disposes the synchronization resources used by this dictionary.
 	/// </summary>
 	/// <param name="disposing">Whether this is being called from the Dispose method.</param>
-	protected virtual void Dispose(bool disposing)
+	protected void Dispose(bool disposing)
 	{
 		if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
 			return;
 
-		if (disposing)
-		{
-			using var pool = _ownedPool;
-			using var _ = _dictionaryLock;
-
-			// Return all semaphores to the pool
-			_dictionaryLock.EnterWriteLock();
-			try
-			{
-				foreach (var lease in _leases.Values)
-				{
-					// If the semaphore is not release, we have a problem and need to dispose of it to prevent issues.
-					int activeCount = lease.ActiveLeaseRequests;
-					Debug.Assert(activeCount != 0, "Lease still active before disposal.");
-
-					int currentCount = lease.Semaphore.CurrentCount;
-					Debug.Assert(currentCount == 1, "Semaphore not released before disposal.");
-
-					if (activeCount != 0 || currentCount != 1)
-					{
-						try { lease.Dispose(); }
-						catch { }
-
-						continue;
-					}
-
-					if (_ownedPool is null) _leasePool.Give(lease);
-				}
-
-				_leases.Clear();
-			}
-			finally
-			{
-				_dictionaryLock.ExitWriteLock();
-			}
-		}
+		if (disposing) OnDisposing();
 
 		Interlocked.CompareExchange(ref _disposeState, 2, 1);
 	}

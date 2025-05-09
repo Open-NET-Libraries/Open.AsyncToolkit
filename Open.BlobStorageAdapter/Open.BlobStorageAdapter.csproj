@@ -14,6 +14,7 @@
 	<ItemGroup>
 	  <PackageReference Include="Open.Serialization" Version="3.0.0" />
 	  <PackageReference Include="Open.Disposable.ObjectPools" Version="2.9.0" />
+	  <PackageReference Include="Open.Threading.ReadWrite" Version="3.0.1" />
 	</ItemGroup>
 
 	<!-- Disable the nullable warnings when compiling for .NET Standard 2.0 -->
