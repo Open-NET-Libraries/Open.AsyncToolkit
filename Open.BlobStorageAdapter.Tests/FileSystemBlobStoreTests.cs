@@ -146,7 +146,7 @@ public class FileSystemBlobStoreTests
 	[Test]
 	public async Task Create_ThrowsArgumentNullException_WhenBasePathIsNull()
 		// Act & Assert
-		=> await ((Action)(() => FileSystemBlobStore.GetOrCreate(null!))).Throws<ArgumentNullException>();
+		=> await ((Action)(static () => FileSystemBlobStore.GetOrCreate(null!))).Throws<ArgumentNullException>();
 
 	[Test]
 	public async Task Write_ThrowsArgumentNullException_WhenKeyIsNull()

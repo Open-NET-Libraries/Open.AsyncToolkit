@@ -52,7 +52,7 @@ public class FileSystemBlobStore : IBlobStore
 			throw new ArgumentNullException(nameof(key));
 
 		// Check for invalid characters
-		if (key.Any(c => InvalidCharacters.Contains(c)))
+		if (key.Any(static c => InvalidCharacters.Contains(c)))
 			throw new ArgumentException($"Key contains invalid file name characters: {key}", nameof(key));
 
 		return Path.Combine(_basePath, key);

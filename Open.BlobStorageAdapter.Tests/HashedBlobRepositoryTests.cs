@@ -57,14 +57,14 @@ public class HashedBlobRepositoryTests
 
 	private void SetupEmptyGuidSet()
 	{
-		var emptySet = FrozenSet<Guid>.Empty;
+		FrozenSet<Guid> emptySet = FrozenSet<Guid>.Empty;
 		var result = TryReadResult<IReadOnlyCollection<Guid>>.Succeeded(emptySet);
 		_asyncDictionaryEntry.TryRead(Arg.Any<CancellationToken>()).Returns(new ValueTask<TryReadResult<IReadOnlyCollection<Guid>>>(result));
 	}
 
 	private void SetupGuidSet(params Guid[] guids)
 	{
-		var guidSet = guids.ToFrozenSet();
+		FrozenSet<Guid> guidSet = guids.ToFrozenSet();
 		var result = TryReadResult<IReadOnlyCollection<Guid>>.Succeeded(guidSet);
 		_asyncDictionaryEntry.TryRead(Arg.Any<CancellationToken>()).Returns(new ValueTask<TryReadResult<IReadOnlyCollection<Guid>>>(result));
 	}
@@ -95,7 +95,7 @@ public class HashedBlobRepositoryTests
 	private void SetupNullStreamForGuid(Guid guid)
 	{
 		// For null streams, set up TryReadAsync to return a failed result
-		var tryReadResult = TryReadResult<Stream>.Failed;
+		TryReadResult<Stream> tryReadResult = TryReadResult<Stream>.Failed;
 		_blobRepo
 			.TryReadAsync(guid, Arg.Any<CancellationToken>())
 			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
@@ -173,9 +173,9 @@ public class HashedBlobRepositoryTests
 	{
 		// Arrange
 		var guid = Guid.NewGuid();
-		
+
 		// Set up TryReadAsync to return a failed result
-		var tryReadResult = TryReadResult<Stream>.Failed;
+		TryReadResult<Stream> tryReadResult = TryReadResult<Stream>.Failed;
 		_blobRepo
 			.TryReadAsync(guid, Arg.Any<CancellationToken>())
 			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
@@ -334,9 +334,9 @@ public class HashedBlobRepositoryTests
 			// Configure the mocks to throw when cancellation token is used
 		_hashMap.LeaseAsync(
 			Arg.Any<string>(),
-			Arg.Is<CancellationToken>(ct => ct.IsCancellationRequested),
+			Arg.Is<CancellationToken>(static ct => ct.IsCancellationRequested),
 			Arg.Any<Func<IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>>, CancellationToken, ValueTask<Guid>>>())
-			.Returns<ValueTask<Guid>>(x => throw new OperationCanceledException());
+			.Returns<ValueTask<Guid>>(static x => throw new OperationCanceledException());
 
 		// Act & Assert
 		bool exceptionThrown = false;

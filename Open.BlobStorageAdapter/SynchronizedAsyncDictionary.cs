@@ -66,7 +66,7 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			?? throw new ArgumentNullException(nameof(innerDictionary));
 
 		_leasePool = semaphorePool
-			?? (_ownedPool = InterlockedArrayObjectPool.CreateAutoDisposal(() => new Lease()));
+			?? (_ownedPool = InterlockedArrayObjectPool.CreateAutoDisposal(static () => new Lease()));
 	}
 
 	public SynchronizedAsyncDictionary(

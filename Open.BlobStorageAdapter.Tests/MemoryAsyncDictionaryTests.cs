@@ -50,7 +50,7 @@ public class MemoryAsyncDictionaryTests
 	public async Task TryReadAsync_ReturnsFailedResult_WhenKeyDoesNotExist()
 	{
 		// Act  
-		var result = await _asyncDictionary.TryReadAsync("non-existent-key");
+		TryReadResult<string> result = await _asyncDictionary.TryReadAsync("non-existent-key");
 
 		// Assert  
 		await Assert.That(result.Success).IsFalse();
@@ -67,7 +67,7 @@ public class MemoryAsyncDictionaryTests
 		_dictionary[key] = value;
 
 		// Act
-		var result = await _asyncDictionary.TryReadAsync(key);
+		TryReadResult<string> result = await _asyncDictionary.TryReadAsync(key);
 
 		// Assert
 		await Assert.That(result.Success).IsTrue();
@@ -83,7 +83,7 @@ public class MemoryAsyncDictionaryTests
 		_dictionary[key] = value;
 
 		// Act
-		var entry = _asyncDictionary[key];
+		IAsyncDictionaryEntry<string, string> entry = _asyncDictionary[key];
 		string? entryValue = await entry.Read();
 
 		// Assert
@@ -171,7 +171,7 @@ public class MemoryAsyncDictionaryTests
 		_dictionary[key] = originalValue;
 
 		// Act
-		var entry = _asyncDictionary[key];
+		IAsyncDictionaryEntry<string, string> entry = _asyncDictionary[key];
 		bool updated = await entry.CreateOrUpdate(updatedValue);
 
 		// Assert
@@ -218,7 +218,7 @@ public class MemoryAsyncDictionaryTests
 		_dictionary[key] = value;
 
 		// Act
-		var entry = _asyncDictionary[key];
+		IAsyncDictionaryEntry<string, string> entry = _asyncDictionary[key];
 		bool deleted = await entry.Delete();
 
 		// Assert
