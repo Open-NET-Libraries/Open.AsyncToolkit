@@ -1,6 +1,6 @@
 # Open.AsyncToolkit
 
-.NET libraries providing composable, asynchronous interfaces for key-value storage, blob operations, and more.
+.NET libraries providing composable, asynchronous interfaces and classes for key-value storage, blob operations, and more.
 
 [![NuGet](https://img.shields.io/nuget/v/Open.AsyncToolkit.KeyValue.svg)](https://www.nuget.org/packages/Open.AsyncToolkit.KeyValue/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Open-NET-Libraries/Open.AsyncToolkit/blob/main/LICENSE)
