@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace Open.BlobStorageAdapter.Tests;
 
@@ -86,80 +85,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		// Assert
 		await Assert.That(finalResult.Success).IsTrue();
 		await Assert.That(finalResult.Value).IsEqualTo(expectedFinalValue);
-	}
-
-	/// <summary>
-	/// Tests that different keys can be leased concurrently without blocking each other.
-	/// </summary>
-	[Test]
-	public async Task DifferentKeys_ShouldBeProcessedInParallel()
-	{        // Arrange
-		const int keyCount = 50;
-		const int delayMs = 10;
-
-		var memoryDict = new MemoryAsyncDictionary<string, int>();
-		using var sut = new SynchronizedAsyncDictionary<string, int>(memoryDict);
-
-		string[] keys = Enumerable.Range(0, keyCount)
-			.Select(i => $"parallel-key-{i}")
-			.ToArray();
-
-		// Initialize all keys with value 0
-		foreach (string? key in keys)
-		{
-			memoryDict[key] = 0;
-		}
-
-		var stopwatch = Stopwatch.StartNew();
-
-		// Act - lease all keys with a fixed delay
-		Task[] tasks = keys.Select(key => Task.Run(async () =>
-		{
-			await sut.LeaseAsync(key, CancellationToken.None, async (entry, ct) =>
-			{
-				// Add a consistent delay to all operations
-				await Task.Delay(delayMs, ct);
-				TryReadResult<int> result = await entry.TryRead(ct);
-				if (result.Success)
-				{
-					await entry.CreateOrUpdate(result.Value + 1, ct);
-				}
-
-				return true;
-			});
-		})).ToArray();
-
-		// Wait for all tasks to complete
-		await Task.WhenAll(tasks);
-
-		long elapsedMs = stopwatch.ElapsedMilliseconds;
-
-		// Verify all keys were updated
-		bool allKeysUpdated = true;
-		foreach (string? key in keys)
-		{
-			TryReadResult<int> result = await sut.TryReadAsync(key, CancellationToken.None);
-			if (!result.Success || result.Value != 1)
-			{
-				allKeysUpdated = false;
-				break;
-			}
-		}
-
-		// If keys were processed sequentially, it would take approximately keyCount * delayMs time
-		// If processed in parallel, it should be much faster
-		int expectedSequentialMs = keyCount * delayMs;
-		long actualParallelMs = elapsedMs;
-
-		// Output timing information
-		Console.WriteLine($"Processing {keyCount} keys:");
-		Console.WriteLine($"  Sequential (estimated): {expectedSequentialMs}ms");
-		Console.WriteLine($"  Parallel (actual): {actualParallelMs}ms");
-		Console.WriteLine($"  Speedup factor: {expectedSequentialMs / (double)actualParallelMs:F2}x");
-
-		// Assert
-		await Assert.That(allKeysUpdated).IsTrue();
-		await Assert.That(elapsedMs < expectedSequentialMs * 0.5).IsTrue();
 	}
 
 	/// <summary>

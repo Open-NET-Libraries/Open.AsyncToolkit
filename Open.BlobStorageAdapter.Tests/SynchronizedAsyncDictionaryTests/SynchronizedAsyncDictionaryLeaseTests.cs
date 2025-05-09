@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Open.BlobStorageAdapter.Tests;
@@ -185,8 +186,9 @@ public partial class SynchronizedAsyncDictionaryTests
 	public async Task ParallelLeaseOperations_OnDifferentKeys_ShouldNotBlock()
 	{
 		// Arrange
-		const int keyCount = 10;
-		const int delayMs = 50; // Each operation takes this long
+		const int keyCount = 10000;
+		const int delayMs = 20; // Each operation takes this long
+		Console.WriteLine($"[ParallelLeaseOperations] Starting test with {keyCount} keys, {delayMs}ms delay per operation");
 
 		string[] keys = Enumerable.Range(0, keyCount)
 			.Select(i => $"parallel-key-{i}")
@@ -198,28 +200,48 @@ public partial class SynchronizedAsyncDictionaryTests
 			_memoryDict[key] = "initial";
 		}
 
+		Console.WriteLine("[ParallelLeaseOperations] All keys initialized");
+
+		// Capture start times for each task
+		var startTimes = new ConcurrentDictionary<string, long>();
+		var endTimes = new ConcurrentDictionary<string, long>();
+		var taskDurations = new ConcurrentDictionary<string, long>();
+
 		// Start a timer to measure total time
 		var stopwatch = Stopwatch.StartNew();
 
 		// Act - Start lease operations on all keys in parallel
-		Task<bool>[] tasks = keys.Select(key => _asyncDictionary.LeaseAsync(
-			key, CancellationToken.None,
-			async (entry, ct) =>
-			{
-				// Each operation has the same delay
-				await Task.Delay(delayMs, ct);
+		Console.WriteLine("[ParallelLeaseOperations] Scheduling lease operations on all keys in parallel");
 
-				// Update the key's value
-				await entry.CreateOrUpdate($"{key}-updated", ct);
+		await Parallel.ForEachAsync(keys, async (key, _) =>
+		{
+			await _asyncDictionary
+				.LeaseAsync(
+					key, CancellationToken.None,
+					async (entry, ct) =>
+				{
+					var localStopwatch = Stopwatch.StartNew();
+					startTimes[key] = stopwatch.ElapsedMilliseconds;
+					Console.WriteLine($"[ParallelLeaseOperations] Started operation on key '{key}' at {startTimes[key]}ms");
 
-				return true;
-			}).AsTask()).ToArray();
+					// Each operation has the same delay
+					await Task.Delay(delayMs, ct);
 
-		// Wait for all tasks to complete
-		await Task.WhenAll(tasks);
+					// Update the key's value
+					await entry.CreateOrUpdate($"{key}-updated", ct);
+
+					endTimes[key] = stopwatch.ElapsedMilliseconds;
+					taskDurations[key] = localStopwatch.ElapsedMilliseconds;
+					Console.WriteLine($"[ParallelLeaseOperations] Completed operation on key '{key}' at {endTimes[key]}ms (took {taskDurations[key]}ms)");
+
+					return true;
+				})
+				.ConfigureAwait(false);
+		});
 
 		// Stop the timer
 		stopwatch.Stop();
+		Console.WriteLine($"[ParallelLeaseOperations] All tasks completed in {stopwatch.ElapsedMilliseconds}ms");
 
 		// Verify all keys were updated
 		bool allUpdated = true;
@@ -228,10 +250,41 @@ public partial class SynchronizedAsyncDictionaryTests
 			TryReadResult<string> result = await _asyncDictionary.TryReadAsync(key, CancellationToken.None);
 			if (!result.Success || result.Value != $"{key}-updated")
 			{
+				Console.WriteLine($"[ParallelLeaseOperations] Key '{key}' was not updated correctly");
 				allUpdated = false;
 				break;
 			}
 		}
+
+		// Log task timings for analysis
+		Console.WriteLine("[ParallelLeaseOperations] Task timing details:");
+		foreach (string key in keys)
+		{
+			Console.WriteLine($"  Key '{key}': Started at {startTimes[key]}ms, ended at {endTimes[key]}ms, duration {taskDurations[key]}ms");
+		}
+
+		// Calculate overlap statistics
+		int overlapCount = 0;
+		for (int i = 0; i < keys.Length; i++)
+		{
+			for (int j = i + 1; j < keys.Length; j++)
+			{
+				string key1 = keys[i];
+				string key2 = keys[j];
+
+				// Check if operations overlapped in time
+				bool overlapped
+					 = startTimes[key1] <= startTimes[key2] && endTimes[key1] >= startTimes[key2]
+					|| startTimes[key2] <= startTimes[key1] && endTimes[key2] >= startTimes[key1];
+
+				if (overlapped) overlapCount++;
+			}
+		}
+
+		Console.WriteLine($"[ParallelLeaseOperations] Detected {overlapCount} overlapping operations out of {keys.Length * (keys.Length - 1) / 2} possible pairs");
+		Console.WriteLine($"[ParallelLeaseOperations] Expected time for serial execution: {keyCount * delayMs}ms");
+		Console.WriteLine($"[ParallelLeaseOperations] Actual execution time: {stopwatch.ElapsedMilliseconds}ms");
+		Console.WriteLine($"[ParallelLeaseOperations] Parallel efficiency: {keyCount * delayMs / (double)stopwatch.ElapsedMilliseconds:P2}");
 
 		// Assert
 
