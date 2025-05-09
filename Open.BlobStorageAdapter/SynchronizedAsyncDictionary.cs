@@ -109,6 +109,7 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 		{
 			if (!_leases.TryGetValue(key, out lease))
 			{
+				// Lease doesn't exist yet. Let's get a new one.
 				_dictionaryLock.EnterWriteLock();
 				try
 				{
@@ -155,7 +156,8 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 			}
 		}
 		finally
-		{           // Operation completed, check if we can remove the semaphore
+		{
+			// Operation completed, check if we can remove the semaphore
 			_dictionaryLock.EnterUpgradeableReadLock();
 			try
 			{
@@ -170,9 +172,9 @@ public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDicti
 						{
 							// Double check after acquiring write lock
 							if (_leases.TryGetValue(key, out lease) &&
-								lease.ActiveLeaseRequests == 0 &&
-								lease.Semaphore.CurrentCount == 1)
+								lease.ActiveLeaseRequests == 0)
 							{
+								Debug.Assert(lease.Semaphore.CurrentCount == 1, "Semaphore not released before disposal.");
 								// Remove the lease and return the semaphore to the pool while holding
 								// the write lock to ensure complete thread safety
 								_leases.Remove(key);
