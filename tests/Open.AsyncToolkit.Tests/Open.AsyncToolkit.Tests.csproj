@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-
-
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Open.AsyncToolkit.HashedRepository\Open.AsyncToolkit.HashedRepository.csproj" />
+  </ItemGroup>
 </Project>

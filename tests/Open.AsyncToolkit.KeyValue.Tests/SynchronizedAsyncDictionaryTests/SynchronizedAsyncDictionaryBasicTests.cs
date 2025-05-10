@@ -167,23 +167,20 @@ public partial class SynchronizedAsyncDictionaryTests
 		localSut.Dispose();
 
 		// Assert - Trying to use after disposal should throw
-		Assert.Throws<ObjectDisposedException>(() =>
+		return Assert.ThrowsAsync<ObjectDisposedException>(async () =>
 		{
-			ValueTask<bool> task = localSut.LeaseAsync<bool>(
+			_ = await localSut.LeaseAsync(
 				"any-key", CancellationToken.None,
 				async (entry, ct) =>
 				{
 					await Task.Delay(1, ct);
 					return true;
 				});
-			task.GetAwaiter().GetResult();
 		});
-
-		return Task.CompletedTask;
 	}
 
 	[Test]
-	public async Task DisposedDictionary_CanStillCallSimpleMethods()
+	public async Task DisposedDictionary_ThrowsOnSimpleMethods()
 	{
 		// Arrange - Create a separate instance with test data
 		SynchronizedAsyncDictionary<string, string> localDict = CreateTestDictionary(TestValue);
@@ -191,14 +188,12 @@ public partial class SynchronizedAsyncDictionaryTests
 		// Act
 		localDict.Dispose();
 
-		// These methods should still work since they just delegate to the inner dictionary
-		bool exists = await localDict.ExistsAsync(TestKey, CancellationToken.None);
-		TryReadResult<string> readResult = await localDict.TryReadAsync(TestKey, CancellationToken.None);
+		// Assert - Trying to use after disposal should throw
+		await Assert.ThrowsAsync<ObjectDisposedException>(
+			async () => _ = await localDict.ExistsAsync(TestKey, CancellationToken.None));
 
-		// Assert
-		await Assert.That(exists).IsTrue();
-		await Assert.That(readResult.Success).IsTrue();
-		await Assert.That(readResult.Value).IsEqualTo(TestValue);
+		await Assert.ThrowsAsync<ObjectDisposedException>(
+			async () => _ = await localDict.TryReadAsync(TestKey, CancellationToken.None));
 	}
 
 	#endregion

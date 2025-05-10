@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Open.AsyncToolkit.KeyValue.Tests;
@@ -38,8 +37,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		public int DeleteCount { get; set; }
 		public long TotalTimeMs { get; set; }
 		public double OperationsPerSecond => (ReadCount + WriteCount + DeleteCount) * 1000.0 / TotalTimeMs;
-		public int FailedOperations { get; set; }
-		public List<Exception> Errors { get; } = [];
 	}
 
 	/// <summary>
@@ -70,7 +67,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		int readCount = 0;
 		int writeCount = 0;
 		int deleteCount = 0;
-		var errors = new ConcurrentBag<Exception>();
 
 		// Signal to start all threads at once
 		using var startSignal = new ManualResetEventSlim(false);
@@ -84,69 +80,62 @@ public partial class SynchronizedAsyncDictionaryTests
 				// Wait for start signal
 				startSignal.Wait();
 
-				try
+				for (int op = 0; op < parameters.OperationsPerThread; op++)
 				{
-					for (int op = 0; op < parameters.OperationsPerThread; op++)
+					// Pick a random key
+					string key = keys[random.Next(keys.Length)];
+
+					// Determine operation based on distribution
+					double opValue = random.NextDouble();
+
+					if (opValue < parameters.ReadRatio)
 					{
-						// Pick a random key
-						string key = keys[random.Next(keys.Length)];
-
-						// Determine operation based on distribution
-						double opValue = random.NextDouble();
-
-						if (opValue < parameters.ReadRatio)
-						{
-							// Read operation
-							await sut.TryReadAsync(key, CancellationToken.None);
-							Interlocked.Increment(ref readCount);
-						}
-						else if (opValue < parameters.ReadRatio + parameters.WriteRatio)
-						{
-							// Write operation (increment value)
-							await sut.LeaseAsync(
-								key, CancellationToken.None,
-								async (entry, ct) =>
-								{
-									TryReadResult<int> result = await entry.TryRead(ct);
-									if (result.Success)
-									{
-										await entry.CreateOrUpdate(result.Value + 1, ct);
-									}
-
-									return true;
-								});
-							Interlocked.Increment(ref writeCount);
-						}
-						else
-						{
-							// Delete and recreate operation
-							await sut.LeaseAsync(
-								key, CancellationToken.None,
-								async (entry, ct) =>
-								{
-									TryReadResult<int> result = await entry.TryRead(ct);
-									if (result.Success)
-									{
-										await entry.Delete(ct);
-										await Task.Delay(1, ct); // Small delay to increase contention
-										await entry.Create(0, ct);
-									}
-
-									return true;
-								});
-							Interlocked.Increment(ref deleteCount);
-						}
-
-						// Add some random delay to simulate varying workloads
-						if (parameters.MaxDelayMs > 0)
-						{
-							await Task.Delay(random.Next(parameters.MaxDelayMs));
-						}
+						// Read operation
+						await sut.TryReadAsync(key, CancellationToken.None);
+						Interlocked.Increment(ref readCount);
 					}
-				}
-				catch (Exception ex)
-				{
-					errors.Add(ex);
+					else if (opValue < parameters.ReadRatio + parameters.WriteRatio)
+					{
+						// Write operation (increment value)
+						await sut.LeaseAsync(
+							key, CancellationToken.None,
+							async (entry, ct) =>
+							{
+								TryReadResult<int> result = await entry.TryRead(ct);
+								if (result.Success)
+								{
+									await entry.CreateOrUpdate(result.Value + 1, ct);
+								}
+
+								return true;
+							});
+						Interlocked.Increment(ref writeCount);
+					}
+					else
+					{
+						// Delete and recreate operation
+						await sut.LeaseAsync(
+							key, CancellationToken.None,
+							async (entry, ct) =>
+							{
+								TryReadResult<int> result = await entry.TryRead(ct);
+								if (result.Success)
+								{
+									await entry.Delete(ct);
+									await Task.Delay(1, ct); // Small delay to increase contention
+									await entry.Create(0, ct);
+								}
+
+								return true;
+							});
+						Interlocked.Increment(ref deleteCount);
+					}
+
+					// Add some random delay to simulate varying workloads
+					if (parameters.MaxDelayMs > 0)
+					{
+						await Task.Delay(random.Next(parameters.MaxDelayMs));
+					}
 				}
 			}));
 		}
@@ -168,12 +157,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		stats.WriteCount = writeCount;
 		stats.DeleteCount = deleteCount;
 		stats.TotalTimeMs = stopwatch.ElapsedMilliseconds;
-		stats.FailedOperations = errors.Count;
-
-		foreach (Exception error in errors)
-		{
-			stats.Errors.Add(error);
-		}
 
 		return stats;
 	}
@@ -202,7 +185,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		WorkloadStats stats = await ExecuteWorkloadAsync(parameters);
 
 		// Assert
-		await Assert.That(stats.FailedOperations).IsEqualTo(0);
 		await Assert.That(stats.ReadCount + stats.WriteCount + stats.DeleteCount)
 			.IsEqualTo(parameters.ThreadCount * parameters.OperationsPerThread);
 
@@ -236,7 +218,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		WorkloadStats stats = await ExecuteWorkloadAsync(parameters);
 
 		// Assert
-		await Assert.That(stats.FailedOperations).IsEqualTo(0);
 		await Assert.That(stats.ReadCount + stats.WriteCount + stats.DeleteCount)
 			.IsEqualTo(parameters.ThreadCount * parameters.OperationsPerThread);
 
@@ -270,7 +251,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		WorkloadStats stats = await ExecuteWorkloadAsync(parameters);
 
 		// Assert
-		await Assert.That(stats.FailedOperations).IsEqualTo(0);
 		await Assert.That(stats.ReadCount + stats.WriteCount + stats.DeleteCount)
 			.IsEqualTo(parameters.ThreadCount * parameters.OperationsPerThread);
 
@@ -304,7 +284,6 @@ public partial class SynchronizedAsyncDictionaryTests
 		WorkloadStats stats = await ExecuteWorkloadAsync(parameters);
 
 		// Assert
-		await Assert.That(stats.FailedOperations).IsEqualTo(0);
 		await Assert.That(stats.ReadCount + stats.WriteCount + stats.DeleteCount)
 			.IsEqualTo(parameters.ThreadCount * parameters.OperationsPerThread);
 
@@ -370,22 +349,20 @@ public partial class SynchronizedAsyncDictionaryTests
 		];
 
 		Console.WriteLine("Workload Comparison:");
-		Console.WriteLine("----------------------------------------");
-		Console.WriteLine("Workload      | Operations | Time (ms) | Ops/sec");
-		Console.WriteLine("----------------------------------------");
+		Console.WriteLine("---------------------------------------------------");
+		Console.WriteLine("Workload         | Operations | Time (ms) | Ops/sec");
+		Console.WriteLine("---------------------------------------------------");
 
 		foreach (WorkloadParams? workload in workloads)
 		{
 			WorkloadStats stats = await ExecuteWorkloadAsync(workload);
 
-			await Assert.That(stats.FailedOperations).IsEqualTo(0);
-
 			// Output comparative results
 			int totalOps = workload.ThreadCount * workload.OperationsPerThread;
-			Console.WriteLine($"{workload.Name,-14} | {totalOps,-10} | {stats.TotalTimeMs,-9} | {stats.OperationsPerSecond:N0}");
+			Console.WriteLine($"{workload.Name,-16} | {totalOps,-10} | {stats.TotalTimeMs,-9} | {stats.OperationsPerSecond:N0}");
 		}
 
-		Console.WriteLine("----------------------------------------");
+		Console.WriteLine("---------------------------------------------------");
 	}
 
 	#endregion

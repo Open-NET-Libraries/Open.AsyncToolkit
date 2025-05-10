@@ -1,0 +1,36 @@
+<Project>
+  <!-- Explicitly disable imports from Directory.Build.props -->
+  <PropertyGroup>
+    <ImportDirectoryBuildProps>false</ImportDirectoryBuildProps>
+  </PropertyGroup>
+  
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference all the library projects we want to test -->
+    <ProjectReference Include="..\..\src\Open.AsyncToolkit.KeyValue\Open.AsyncToolkit.KeyValue.csproj" />
+    <ProjectReference Include="..\..\src\Open.AsyncToolkit.BlobStorage\Open.AsyncToolkit.BlobStorage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>    <!-- Framework compatibility packages -->
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.4" />
+    <!-- Test frameworks -->
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+    <PackageReference Include="NSubstitute" Version="5.0.0" />
+  </ItemGroup>
+  
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

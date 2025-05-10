@@ -52,9 +52,4 @@
     <None Include="$(MSBuildThisFileDirectory)\icon.png" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)\icon.png')" />
   </ItemGroup>
 
-  <!-- Source Link support for GitHub -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
-
 </Project>

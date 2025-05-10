@@ -12,6 +12,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Open.AsyncToolkit.KeyValue"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A7829E28-62A0-4EBC-8A27-AAB60D962C60}"
 	ProjectSection(SolutionItems) = preProject
+		tests\.editorconfig = tests\.editorconfig
 		tests\Directory.Build.props = tests\Directory.Build.props
 	EndProjectSection
 EndProject
@@ -27,11 +28,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage", "src\Open.AsyncToolkit.BlobStorage\Open.AsyncToolkit.BlobStorage.csproj", "{186DAF6A-91FA-6133-89F0-92C0DFBDCECD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage.HashedRepository", "src\Open.AsyncToolkit.HashedRepository\Open.AsyncToolkit.BlobStorage.HashedRepository.csproj", "{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.HashedRepository", "src\Open.AsyncToolkit.HashedRepository\Open.AsyncToolkit.HashedRepository.csproj", "{572D21B5-EF7F-0912-9FC0-498AFDBB0C29}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.Tests", "tests\Open.AsyncToolkit.Tests\Open.AsyncToolkit.Tests.csproj", "{019316BE-FD26-2AF2-1731-7DD8B55E247D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.NetFramework.Tests", "tests\Open.AsyncToolkit.NetFramework.Tests\Open.AsyncToolkit.NetFramework.Tests.csproj", "{99663991-B036-4E4A-B178-F705920BDAC6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage.Tests", "tests\Open.AsyncToolkit.BlobStorage.Tests\Open.AsyncToolkit.BlobStorage.Tests.csproj", "{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -115,6 +118,18 @@ Global
 		{99663991-B036-4E4A-B178-F705920BDAC6}.Release|x64.Build.0 = Release|Any CPU
 		{99663991-B036-4E4A-B178-F705920BDAC6}.Release|x86.ActiveCfg = Release|Any CPU
 		{99663991-B036-4E4A-B178-F705920BDAC6}.Release|x86.Build.0 = Release|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Debug|x64.Build.0 = Debug|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Debug|x86.Build.0 = Debug|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x64.ActiveCfg = Release|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x64.Build.0 = Release|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x86.ActiveCfg = Release|Any CPU
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -126,6 +141,7 @@ Global
 		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29} = {5BC16F49-1231-4D8C-8638-8631DF182980}
 		{019316BE-FD26-2AF2-1731-7DD8B55E247D} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
 		{99663991-B036-4E4A-B178-F705920BDAC6} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
+		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {71FF8EB2-F3E3-47D3-A1DF-931217A231AF}

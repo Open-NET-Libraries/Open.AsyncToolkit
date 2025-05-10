@@ -1,21 +1,19 @@
-using System.Text;
-
 namespace Open.AsyncToolkit.Tests;
 
 /// <summary>
 /// Tests for the <see cref="Sha256HashProvider"/> class.
 /// </summary>
-public class Sha256HashProviderTests
+internal class Sha256HashProviderTests
 {
 	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;
 
 	// Known hash test values
 	private static readonly byte[] EmptyData = [];
-	private static readonly string EmptyDataHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+	private const string EmptyDataHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-	private static readonly string SimpleDataText = "test data";
+	private const string SimpleDataText = "test data";
 	private static readonly byte[] SimpleData = Encoding.UTF8.GetBytes(SimpleDataText);
-	private static readonly string SimpleDataHash = "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9";
+	private const string SimpleDataHash = "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9";
 
 	private const int LargeDataSize = 1024 * 1024; // 1MB
 

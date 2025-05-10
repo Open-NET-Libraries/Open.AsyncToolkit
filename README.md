@@ -1,21 +1,16 @@
 # Open.AsyncToolkit
 
-.NET libraries providing composable, asynchronous interfaces and classes for key-value storage, blob operations, and more.
-
-[![NuGet](https://img.shields.io/nuget/v/Open.AsyncToolkit.KeyValue.svg)](https://www.nuget.org/packages/Open.AsyncToolkit.KeyValue/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Open-NET-Libraries/Open.AsyncToolkit/blob/main/LICENSE)
+
 
 ## Overview
 
 Open.AsyncToolkit offers a set of focused interfaces and implementations for common asynchronous programming patterns. The libraries follow interface segregation principles to enable precise dependency injection and composability.
 
-The toolkit supports .NET Standard 2.0 and above, including the latest .NET versions.
-
-## Libraries
-
-The Open.AsyncToolkit collection is organized as a set of foundational building blocks that snap together to create powerful, composable systems.
 
 ### Open.AsyncToolkit.KeyValue
+
+[![Open.AsyncToolkit.KeyValue](https://img.shields.io/nuget/v/Open.AsyncToolkit.KeyValue.svg?label=Open.AsyncToolkit.KeyValue)](https://www.nuget.org/packages/Open.AsyncToolkit.KeyValue/)  
 
 A core library providing the foundational building blocks for asynchronous key-value operations.
 
@@ -29,7 +24,32 @@ These are the foundational interfaces for asynchronous access to entities and re
 - `IDeleteAsync<TKey>` - Interface for deleting entries
 - `ICreateOrUpdate<TKey, TValue>` - Combined interface for inserting or updating entries
 
-These interfaces allow for fine-grained control over dependencies, making your code more focused and testable:
+These interfaces allow for fine-grained control over dependencies, making your code more focused and testable.
+
+### Using the Building Blocks
+
+The toolkit is designed to let you implement or use exactly what you need:
+This approach allows you to:
+- Depend only on the exact operations your class needs
+- Easily mock dependencies in unit tests
+- Swap implementations without changing your business logic
+- Compose larger interfaces from these building blocks
+
+#### 🏗️ Composite Interfaces
+
+These interfaces build upon the foundation blocks to provide more comprehensive functionality:
+
+- `IAsyncDictionary<TKey, TValue>` - Full-featured async dictionary interface combining read, create, update, and delete operations
+- `ISynchronizedAsyncDictionary<TKey, TValue>` - Provides synchronized, exclusive leased access to dictionary entries to prevent concurrency conflicts
+
+#### 🔧 Implementations
+
+Ready-to-use implementations built from the foundational components:
+
+- `MemoryAsyncDictionary<TKey, TValue>` - In-memory implementation of async dictionary
+- `SynchronizedAsyncDictionary<TKey, TValue>` - Synchronized wrapper for any async dictionary
+
+#### Example
 
 ```csharp
 // Only depend on the operations you actually need
@@ -58,27 +78,9 @@ public class UserProfileService
 }
 ```
 
-This approach allows you to:
-- Depend only on the exact operations your class needs
-- Easily mock dependencies in unit tests
-- Swap implementations without changing your business logic
-- Compose larger interfaces from these building blocks
-
-#### 🏗️ Composite Interfaces
-
-These interfaces build upon the foundation blocks to provide more comprehensive functionality:
-
-- `IAsyncDictionary<TKey, TValue>` - Full-featured async dictionary interface combining read, create, update, and delete operations
-- `ISynchronizedAsyncDictionary<TKey, TValue>` - Provides synchronized, exclusive leased access to dictionary entries to prevent concurrency conflicts
-
-#### 🔧 Implementations
-
-Ready-to-use implementations built from the foundational components:
-
-- `MemoryAsyncDictionary<TKey, TValue>` - In-memory implementation of async dictionary
-- `SynchronizedAsyncDictionary<TKey, TValue>` - Synchronized wrapper for any async dictionary
-
 ### Open.AsyncToolkit.BlobStorage
+
+[![Open.AsyncToolkit.BlobStorage](https://img.shields.io/nuget/v/Open.AsyncToolkit.BlobStorage.svg?label=Open.AsyncToolkit.BlobStorage)](https://www.nuget.org/packages/Open.AsyncToolkit.BlobStorage/)  
 
 Building on the same principles as the KeyValue library, this package provides composable interfaces for blob storage operations.
 
@@ -99,13 +101,14 @@ The blob interfaces are specifically designed to manage the Stream lifecycle pro
 - `IMutableBlobRepo<TKey>` - Repository interface with mutation capabilities
 - `IBlobStore<TKey>` - Complete blob storage interface with full CRUD operations
 
-### Open.AsyncToolkit.BlobStorage.FileSystem
+#### Simple Implementations
 
 A concrete implementation of the blob storage interfaces using the file system.
 
-- `FileSystemBlobStore` - Stores blobs as files in a directory structure, implementing the full `IBlobStore` interface
+- `MemoryBlobStore` - Stores blobs as bytes in memory
+- `FileSystemBlobStore` - Stores blobs as files in a directory structure
 
-### Open.AsyncToolkit.BlobStorage.HashedRepository
+### Open.AsyncToolkit.HashedRepository
 
 Content-addressable storage built on top of the foundational interfaces.
 
@@ -119,43 +122,11 @@ Content-addressable storage built on top of the foundational interfaces.
 - **Building block architecture**: Small, focused interfaces that can be combined to create complex systems
 - **Async-first design**: Built around Task-based async patterns with ValueTask support for high performance
 - **Interface segregation**: Granular interfaces allowing precise dependency injection
-- **Cross-platform**: Works on all .NET platforms supporting .NET Standard 2.0 and above
+- **Cross-platform**: Works on all .NET platforms supporting .NET Standard 2.0, 2.1, and .NET 9
 - **Highly composable**: Mix and match components to build custom solutions
 - **Modern C# features**: Utilizes the latest C# language features where appropriate
 - **Well-tested**: Comprehensive test coverage ensures reliability
 
-## Getting Started
-
-Install the packages you need from NuGet:
-
-```bash
-dotnet add package Open.AsyncToolkit.KeyValue
-dotnet add package Open.AsyncToolkit.BlobStorage
-dotnet add package Open.AsyncToolkit.BlobStorage.FileSystem
-dotnet add package Open.AsyncToolkit.BlobStorage.HashedRepository
-```
-
-### Using the Building Blocks
-
-The toolkit is designed to let you implement or use exactly what you need:
-
-```csharp
-// Implement only the specific interfaces you need
-public class MyCustomStore
-  : IReadAsync<string, string>, 
-    IUpdateAsync<string, string>
-{
-    // Implementation details...
-}
-
-// Or use the pre-built implementations
-var dictionary = new MemoryAsyncDictionary<string, string>()
-    .AsSynchronized();
-await dictionary.CreateAsync("key", "value");
-
-// File system blob storage
-var blobStore = FileSystemBlobStore.GetOrCreate("./blobs");
-```
 
 ## License
 

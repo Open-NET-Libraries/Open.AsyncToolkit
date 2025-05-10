@@ -1,13 +1,10 @@
-using NSubstitute;
-using System.Collections.Frozen;
-using System.Text;
 
 namespace Open.AsyncToolkit.Tests;
 
 /// <summary>
 /// Tests for the <see cref="HashedBlobRepository"/> class.
 /// </summary>
-public class HashedBlobRepositoryTests
+internal class HashedBlobRepositoryTests
 {
 	// Use the real (test covered) Sha256HashProvider instead of mocking
 	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;
@@ -16,7 +13,6 @@ public class HashedBlobRepositoryTests
 	private const int LargeDataSize = 8192; // 8KB
 	private const string StandardContent = "test content";
 	private static readonly ReadOnlyMemory<byte> StandardTestData = Encoding.UTF8.GetBytes(StandardContent);
-	private static readonly string TestHash = HashProvider.ComputeHash(StandardTestData.Span);
 
 	private IBlobRepo<Guid> _blobRepo = default!;
 	private ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = default!;
@@ -57,15 +53,15 @@ public class HashedBlobRepositoryTests
 
 	private void SetupEmptyGuidSet()
 	{
-		FrozenSet<Guid> emptySet = FrozenSet<Guid>.Empty;
-		var result = TryReadResult<IReadOnlyCollection<Guid>>.Succeeded(emptySet);
+		FrozenSet<Guid> emptySet = [];
+		var result = TryReadResult.Success<IReadOnlyCollection<Guid>>(emptySet);
 		_asyncDictionaryEntry.TryRead(Arg.Any<CancellationToken>()).Returns(new ValueTask<TryReadResult<IReadOnlyCollection<Guid>>>(result));
 	}
 
 	private void SetupGuidSet(params Guid[] guids)
 	{
 		FrozenSet<Guid> guidSet = guids.ToFrozenSet();
-		var result = TryReadResult<IReadOnlyCollection<Guid>>.Succeeded(guidSet);
+		var result = TryReadResult.Success<IReadOnlyCollection<Guid>>(guidSet);
 		_asyncDictionaryEntry.TryRead(Arg.Any<CancellationToken>()).Returns(new ValueTask<TryReadResult<IReadOnlyCollection<Guid>>>(result));
 	}
 
@@ -81,9 +77,9 @@ public class HashedBlobRepositoryTests
 	private void SetupStreamForGuid(Guid guid, ReadOnlyMemory<byte> content)
 	{
 		var stream = new MemoryStream(content.ToArray());
-		
+
 		// First, set up TryReadAsync to return a successful result
-		var tryReadResult = TryReadResult<Stream>.Succeeded(stream);
+		var tryReadResult = TryReadResult.Success<Stream>(stream);
 		_blobRepo
 			.TryReadAsync(guid, Arg.Any<CancellationToken>())
 			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
@@ -95,7 +91,7 @@ public class HashedBlobRepositoryTests
 	private void SetupNullStreamForGuid(Guid guid)
 	{
 		// For null streams, set up TryReadAsync to return a failed result
-		TryReadResult<Stream> tryReadResult = TryReadResult<Stream>.Failed;
+		TryReadResult<Stream> tryReadResult = TryReadResult<Stream>.NotFound;
 		_blobRepo
 			.TryReadAsync(guid, Arg.Any<CancellationToken>())
 			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
@@ -144,15 +140,15 @@ public class HashedBlobRepositoryTests
 		// Arrange
 		var guid = Guid.NewGuid();
 		var testStream = new MemoryStream(Encoding.UTF8.GetBytes("test content"));
-		
+
 		// Set up TryReadAsync to return a successful result
-		var tryReadResult = TryReadResult<Stream>.Succeeded(testStream);
+		var tryReadResult = TryReadResult.Success<Stream>(testStream);
 		_blobRepo
 			.TryReadAsync(guid, Arg.Any<CancellationToken>())
 			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
 
 		// Act
-		Stream result = await _repository.Get(guid);
+		Stream result = await _repository.GetAsync(guid);
 
 		// Assert
 		await Assert.That(result).IsNotNull();
@@ -173,14 +169,14 @@ public class HashedBlobRepositoryTests
 		var guid = Guid.NewGuid();
 
 		// Set up TryReadAsync to return a failed result
-		TryReadResult<Stream> tryReadResult = TryReadResult<Stream>.Failed;
+		TryReadResult<Stream> tryReadResult = TryReadResult<Stream>.NotFound;
 		_blobRepo
 			.TryReadAsync(guid, Arg.Any<CancellationToken>())
 			.Returns(new ValueTask<TryReadResult<Stream>>(tryReadResult));
 
 		// Act & Assert
-		await ((Func<Task>)(async () => await _repository.Get(guid)))
-			.ThrowsAsync<KeyNotFoundException>();
+		await Assert.ThrowsAsync<KeyNotFoundException>(
+			async () => await _repository.GetAsync(guid));
 
 		// Verify that TryReadAsync was called with the correct GUID
 		await _blobRepo.Received(1).TryReadAsync(guid, Arg.Any<CancellationToken>());
@@ -203,7 +199,7 @@ public class HashedBlobRepositoryTests
 		SetupStreamForGuid(existingGuid, StandardTestData);
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsEqualTo(existingGuid);
@@ -230,7 +226,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
@@ -258,7 +254,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(existingGuid);
@@ -283,7 +279,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(existingGuid);
@@ -313,7 +309,7 @@ public class HashedBlobRepositoryTests
 		SetupStreamForGuid(nonMatchingGuid2, "also different");
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsEqualTo(matchingGuid);
@@ -326,10 +322,10 @@ public class HashedBlobRepositoryTests
 	public async Task Put_PropagatesCancellation_WhenCancellationIsRequested()
 	{
 		// Arrange
-		var cancellationTokenSource = new CancellationTokenSource();
-		cancellationTokenSource.Cancel();
+		using var cancellationTokenSource = new CancellationTokenSource();
+		await cancellationTokenSource.CancelAsync();
 
-			// Configure the mocks to throw when cancellation token is used
+		// Configure the mocks to throw when cancellation token is used
 		_hashMap.LeaseAsync(
 			Arg.Any<string>(),
 			Arg.Is<CancellationToken>(static ct => ct.IsCancellationRequested),
@@ -340,7 +336,7 @@ public class HashedBlobRepositoryTests
 		bool exceptionThrown = false;
 		try
 		{
-			await _repository.Put(StandardTestData, cancellationTokenSource.Token);
+			await _repository.PutAsync(StandardTestData, cancellationTokenSource.Token);
 		}
 		catch (OperationCanceledException)
 		{
@@ -366,7 +362,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(existingGuid);
@@ -388,7 +384,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
@@ -421,7 +417,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
@@ -459,7 +455,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(emptyData);
+		Guid result = await _repository.PutAsync(emptyData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
@@ -482,7 +478,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(largeData);
+		Guid result = await _repository.PutAsync(largeData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
@@ -504,7 +500,7 @@ public class HashedBlobRepositoryTests
 		Guid capturedGuid = SetupCapturedGuid();
 
 		// Act
-		Guid result = await _repository.Put(StandardTestData);
+		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
 		await Assert.That(result).IsNotEqualTo(deletedGuid);

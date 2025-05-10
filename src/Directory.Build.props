@@ -4,4 +4,10 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net9.0;</TargetFrameworks>
   </PropertyGroup>
+
+    <!-- Source Link support for GitHub -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
 </Project>
