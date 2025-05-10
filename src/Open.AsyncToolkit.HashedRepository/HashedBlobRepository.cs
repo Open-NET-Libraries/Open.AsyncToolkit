@@ -12,10 +12,7 @@ public class HashedBlobRepository(
 	: IIdempotentRepository<Guid>
 {
 	/// <inheritdoc />
-	/// <exception cref="KeyNotFoundException">
-	/// Thrown when the specified key is not found in the repository.
-	/// </exception>
-	public async ValueTask<Stream> Get(
+	public async ValueTask<Stream> GetAsync(
 		Guid key,
 		CancellationToken cancellationToken = default)
 		=> await blobRepo.ReadAsync(key, cancellationToken)
@@ -23,7 +20,7 @@ public class HashedBlobRepository(
 		   ?? throw new KeyNotFoundException($"Key [{key}] not found.");
 
 	/// <inheritdoc />
-	public ValueTask<Guid> Put(
+	public ValueTask<Guid> PutAsync(
 		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default)
 		=> hashMap.LeaseAsync(
@@ -34,9 +31,9 @@ public class HashedBlobRepository(
 				var guids = await entry.Read(ct)
 					.ConfigureAwait(false)
 #if NET9_0_OR_GREATER
-					?? System.Collections.Frozen.FrozenSet<Guid>.Empty;
+					?? FrozenSet<Guid>.Empty;
 #else
-					?? System.Collections.Immutable.ImmutableHashSet<Guid>.Empty;
+					?? ImmutableHashSet<Guid>.Empty;
 #endif
 
 				if (guids.Count > 0)

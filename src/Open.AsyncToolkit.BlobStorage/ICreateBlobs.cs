@@ -28,7 +28,7 @@ public interface ICreateBlobs<TKey>
 
 /// <inheritdoc cref="ICreateBlobs{TKey}"/>
 /// <remarks>
-/// This is a convenience interface that specifies <see langword="string"/> 
+/// This is a convenience type that specifies <see langword="string"/> 
 /// as the key type.
 /// </remarks>
 public interface ICreateBlobs

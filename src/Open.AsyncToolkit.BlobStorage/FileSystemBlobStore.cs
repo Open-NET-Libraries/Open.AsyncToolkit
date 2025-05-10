@@ -1,4 +1,4 @@
-namespace Open.AsyncToolkit.BlobStorage.FileSystem;
+namespace Open.AsyncToolkit.BlobStorage;
 
 /// <summary>
 /// Implementation of <see cref="IBlobStore"/> that uses the file system to store blobs.
@@ -21,7 +21,7 @@ public sealed class FileSystemBlobStore : IBlobStore
 	/// <exception cref="IOException">Thrown when the directory cannot be created.</exception>
 	public static FileSystemBlobStore GetOrCreate(string basePath)
 	{
-		if (basePath == null)
+		if (basePath is null)
 			throw new ArgumentNullException(nameof(basePath));
 
 		// Ensure the directory exists
@@ -85,6 +85,28 @@ public sealed class FileSystemBlobStore : IBlobStore
 			FileShare.Read,
 			bufferSize: 4096,
 			useAsync: true);
+	}
+
+	/// <inheritdoc />
+	public async ValueTask<TryReadResult<ReadOnlyMemory<byte>>> TryReadBytesAsync(string key, CancellationToken cancellationToken = default)
+	{
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA1849 // Call async methods when in an async method
+		using var stream = Read(key);
+#pragma warning restore CA1849 // Call async methods when in an async method
+#pragma warning restore IDE0079 // Remove unnecessary suppression
+
+		if (stream is null) return TryReadResult.NotFound<ReadOnlyMemory<byte>>();
+		byte[] buffer = new byte[stream.Length];
+#if NETSTANDARD2_0
+		await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+#else
+		await stream.ReadAsync(buffer, cancellationToken)
+#endif
+			.ConfigureAwait(false);
+
+		return TryReadResult.Success<ReadOnlyMemory<byte>>(buffer);
+
 	}
 
 	/// <returns><see langword="true"/> if successful; otherwise <see langword="false"/> if not found.</returns>

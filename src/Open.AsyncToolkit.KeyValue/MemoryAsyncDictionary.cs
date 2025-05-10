@@ -3,7 +3,8 @@ using System.Collections.Concurrent;
 namespace Open.AsyncToolkit.KeyValue;
 
 /// <summary>
-/// Implements an in-memory <see cref="IAsyncDictionary{TKey, TValue}"/> using a <see cref="ConcurrentDictionary{TKey, TValue}"/>
+/// Implements an in-memory <see cref="IAsyncDictionary{TKey, TValue}"/>
+/// using a <see cref="ConcurrentDictionary{TKey, TValue}"/>
 /// as the underlying storage mechanism.
 /// </summary>
 /// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>

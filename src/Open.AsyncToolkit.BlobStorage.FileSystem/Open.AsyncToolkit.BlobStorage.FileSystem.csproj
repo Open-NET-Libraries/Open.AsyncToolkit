@@ -1,7 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\Open.AsyncToolkit.BlobStorage\Open.AsyncToolkit.BlobStorage.csproj" />
-  </ItemGroup>
-
-</Project>

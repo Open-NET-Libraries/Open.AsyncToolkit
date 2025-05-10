@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net9.0</TargetFrameworks>
-		<NoWarn>$(NoWarn);CA1513;</NoWarn>
+    <Description>Core interfaces and types for blob storage operations with async support</Description>
+    <PackageTags>async;blob;storage</PackageTags>
+	  <NoWarn>$(NoWarn);CA1513;</NoWarn>
   </PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Open.Serialization" Version="3.0.0" />
 	  <ProjectReference Include="..\Open.AsyncToolkit.KeyValue\Open.AsyncToolkit.KeyValue.csproj" />
 	</ItemGroup>
 	

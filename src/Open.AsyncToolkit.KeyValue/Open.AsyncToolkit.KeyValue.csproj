@@ -1,14 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net9.0;</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-		<LangVersion>preview</LangVersion>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <VersionPrefix>1.0.0</VersionPrefix>
 		<NoWarn>$(NoWarn);CA1711;</NoWarn>
-		
-		<Description>Provides async dictionary interfaces and implementations with synchronization capabilities for concurrent access.</Description>
+
+		<Description>Provides foundational building blocks for creating asynchronous key-value stores with robust interfaces, synchronization capabilities, and concurrent access patterns.</Description>
     <Authors>Open-NET-Libraries</Authors>
     <PackageTags>async;dictionary;key-value;concurrent;synchronized;collections</PackageTags>
   </PropertyGroup>

@@ -19,8 +19,11 @@ public interface IIdempotentRepository<TKey>
 	/// A stream containing the content.
 	/// The caller is responsible for disposing the returned stream.
 	/// </returns>
-	ValueTask<Stream> Get(
-		TKey key,
+	/// <exception cref="KeyNotFoundException">
+	/// Thrown when the specified key is not found in the repository.
+	/// </exception>
+	ValueTask<Stream> GetAsync(
+	TKey key,
 		CancellationToken cancellationToken = default);
 
 	/// <summary>
@@ -32,7 +35,7 @@ public interface IIdempotentRepository<TKey>
 	/// <returns>
 	/// The content-based key that can be used to retrieve the data.
 	/// </returns>
-	ValueTask<TKey> Put(
+	ValueTask<TKey> PutAsync(
 		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default);
 }
