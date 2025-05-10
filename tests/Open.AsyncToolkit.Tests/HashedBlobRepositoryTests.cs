@@ -4,7 +4,7 @@ namespace Open.AsyncToolkit.Tests;
 /// <summary>
 /// Tests for the <see cref="HashedBlobRepository"/> class.
 /// </summary>
-internal class HashedBlobRepositoryTests
+internal sealed class HashedBlobRepositoryTests
 {
 	// Use the real (test covered) Sha256HashProvider instead of mocking
 	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;

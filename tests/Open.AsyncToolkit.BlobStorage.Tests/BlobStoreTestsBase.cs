@@ -285,7 +285,8 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 
 	#endregion
 
-	#region Argument Validation Tests    [Test]
+	#region Argument Validation Tests
+	[Test]
 	public async Task Methods_ThrowArgumentNullException_WhenKeyIsNull()
 	{
 		// Arrange

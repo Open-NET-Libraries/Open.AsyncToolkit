@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	
   <ItemGroup>
     <ProjectReference Include="..\..\src\Open.AsyncToolkit.HashedRepository\Open.AsyncToolkit.HashedRepository.csproj" />
   </ItemGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="TUnit" Version="0.19.116" />
+	</ItemGroup>
+	
 </Project>

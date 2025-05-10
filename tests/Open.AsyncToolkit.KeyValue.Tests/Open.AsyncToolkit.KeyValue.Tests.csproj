@@ -4,4 +4,8 @@
     <ProjectReference Include="..\..\src\Open.AsyncToolkit.KeyValue\Open.AsyncToolkit.KeyValue.csproj" />
   </ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="TUnit" Version="0.19.116" />
+	</ItemGroup>
+	
 </Project>

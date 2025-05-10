@@ -1,17 +1,13 @@
-<Project>
-  <!-- Explicitly disable imports from Directory.Build.props -->
-  <PropertyGroup>
-    <ImportDirectoryBuildProps>false</ImportDirectoryBuildProps>
-  </PropertyGroup>
-  
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-  
-  <PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <IsPackable>false</IsPackable>
-    <IsTestProject>true</IsTestProject>
+		<NoWarn>$(NoWarn);CA1515;</NoWarn>
   </PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="D:\Users\essence\Development\- GitHub\- Open-NET-Libraries\Open.AsyncToolkit\\README.md" />
+	</ItemGroup>
 
   <ItemGroup>
     <!-- Reference all the library projects we want to test -->
@@ -28,9 +24,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
-    <PackageReference Include="NSubstitute" Version="5.0.0" />
   </ItemGroup>
   
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
-
 </Project>

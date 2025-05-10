@@ -3,7 +3,7 @@ namespace Open.AsyncToolkit.Tests;
 /// <summary>
 /// Tests for the <see cref="Sha256HashProvider"/> class.
 /// </summary>
-internal class Sha256HashProviderTests
+internal sealed class Sha256HashProviderTests
 {
 	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;
 
