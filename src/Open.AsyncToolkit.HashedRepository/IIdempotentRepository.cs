@@ -23,7 +23,7 @@ public interface IIdempotentRepository<TKey>
 	/// Thrown when the specified key is not found in the repository.
 	/// </exception>
 	ValueTask<Stream> GetAsync(
-	TKey key,
+		TKey key,
 		CancellationToken cancellationToken = default);
 
 	/// <summary>

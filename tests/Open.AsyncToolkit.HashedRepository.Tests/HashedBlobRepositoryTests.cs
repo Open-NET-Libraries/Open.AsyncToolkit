@@ -16,7 +16,7 @@ public sealed class HashedBlobRepositoryTests
 	private readonly IBlobRepo<Guid> _blobRepo;
 	private readonly ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap;
 	private readonly IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry;
-	private readonly HashedBlobRepository _repository;
+	private readonly HashedBlobRepository<Guid> _repository;
 
 	public HashedBlobRepositoryTests()
 	{
@@ -43,7 +43,7 @@ public sealed class HashedBlobRepositoryTests
 #pragma warning restore IDE0079 // Remove unnecessary suppression
 
 		// Initialize the repository with the mocks
-		_repository = new HashedBlobRepository(_blobRepo, _hashMap, HashProvider);
+		_repository = HashedBlobRepository.Create(_blobRepo, _hashMap, () => Guid.NewGuid());
 	}
 
 	#region Helper Methods
