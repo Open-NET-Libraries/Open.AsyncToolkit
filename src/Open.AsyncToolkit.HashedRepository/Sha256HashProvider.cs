@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace Open.AsyncToolkit.BlobStorage.HashedRepository;
+namespace Open.AsyncToolkit.HashedRepository;
 
 /// <summary>
 /// Implementation of <see cref="IHashProvider"/> using SHA-256 algorithm.

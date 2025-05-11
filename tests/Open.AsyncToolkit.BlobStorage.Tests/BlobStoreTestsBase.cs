@@ -144,6 +144,51 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	}
 
 	[Test]
+	public async Task CreateAsync_WithBytes_ReturnsTrue_WhenBlobDoesNotExist()
+	{
+		// Arrange
+		const string key = "new-key-bytes";
+		byte[] bytes = Encoding.UTF8.GetBytes(StandardContent);
+
+		// Act
+		bool created = await BlobStoreInterface.CreateAsync(key, bytes);
+
+		// Assert
+		await Assert.That(created).IsTrue();
+
+		// Verify content
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
+	}
+
+	[Test]
+	public async Task CreateAsync_WithBytes_ReturnsFalse_WhenBlobExists()
+	{
+		// Arrange
+		const string key = "existing-key-bytes";
+		byte[] initialBytes = Encoding.UTF8.GetBytes(StandardContent);
+		byte[] updatedBytes = Encoding.UTF8.GetBytes(UpdatedContent);
+
+		// Create the blob first
+		bool initialCreation = await BlobStoreInterface.CreateAsync(key, initialBytes);
+		await Assert.That(initialCreation).IsTrue();
+
+		// Act - Try to create again
+		bool secondCreation = await BlobStoreInterface.CreateAsync(key, updatedBytes);
+
+		// Assert
+		await Assert.That(secondCreation).IsFalse();
+
+		// Verify original content is still there
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
+	}
+
+	[Test]
 	public async Task CreateAsync_ReturnsFalse_WhenBlobExists()
 	{
 		// Arrange
@@ -178,6 +223,67 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 
 		// Assert
 		await Assert.That(updated).IsFalse();
+	}
+
+	[Test]
+	public async Task UpdateAsync_WithBytes_ReturnsFalse_WhenBlobDoesNotExist()
+	{
+		// Arrange
+		const string key = "nonexistent-key-bytes";
+		byte[] bytes = Encoding.UTF8.GetBytes(UpdatedContent);
+
+		// Act
+		bool updated = await BlobStoreInterface.UpdateAsync(key, bytes);
+
+		// Assert
+		await Assert.That(updated).IsFalse();
+	}
+
+	[Test]
+	public async Task UpdateAsync_WithBytes_ReturnsTrue_AndUpdatesContent_WhenBlobExists()
+	{
+		// Arrange
+		const string key = "update-key-bytes";
+		byte[] initialBytes = Encoding.UTF8.GetBytes(StandardContent);
+		byte[] updatedBytes = Encoding.UTF8.GetBytes(UpdatedContent);
+
+		// Create the blob first
+		await BlobStoreInterface.CreateAsync(key, initialBytes);
+
+		// Act
+		bool updated = await BlobStoreInterface.UpdateAsync(key, updatedBytes);
+
+		// Assert
+		await Assert.That(updated).IsTrue();
+
+		// Verify updated content
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(UpdatedContent);
+	}
+
+	[Test]
+	public async Task UpdateAsync_WithBytes_ReturnsFalse_WhenContentIsUnchanged()
+	{
+		// Arrange
+		const string key = "update-unchanged-bytes";
+		byte[] bytes = Encoding.UTF8.GetBytes(StandardContent);
+
+		// Create the blob first
+		await BlobStoreInterface.CreateAsync(key, bytes);
+
+		// Act - Try to update with the same content
+		bool updated = await BlobStoreInterface.UpdateAsync(key, bytes);
+
+		// Assert - Should return false because content is unchanged
+		await Assert.That(updated).IsFalse();
+
+		// Verify content is still there
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
 	}
 
 	[Test]
@@ -247,6 +353,140 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 		await Assert.That(content).IsEqualTo(UpdatedContent);
 	}
 
+	[Test]
+	public async Task CreateOrUpdateAsync_WithBytes_CreatesNewBlob_WhenBlobDoesNotExist()
+	{
+		// Arrange
+		const string key = "create-or-update-new-bytes";
+		byte[] bytes = Encoding.UTF8.GetBytes(StandardContent);
+
+		// Act
+		bool result = await BlobStoreInterface.CreateOrUpdateAsync(key, bytes);
+
+		// Assert
+		await Assert.That(result).IsTrue();
+
+		// Verify content
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
+	}
+
+	[Test]
+	public async Task CreateOrUpdateAsync_WithBytes_UpdatesExistingBlob_WhenBlobExists()
+	{
+		// Arrange
+		const string key = "create-or-update-existing-bytes";
+		byte[] initialBytes = Encoding.UTF8.GetBytes(StandardContent);
+		byte[] updatedBytes = Encoding.UTF8.GetBytes(UpdatedContent);
+
+		// Create the blob first
+		await BlobStoreInterface.CreateAsync(key, initialBytes);
+
+		// Act
+		bool result = await BlobStoreInterface.CreateOrUpdateAsync(key, updatedBytes);
+
+		// Assert
+		await Assert.That(result).IsTrue();
+
+		// Verify updated content
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(UpdatedContent);
+	}
+
+	[Test]
+	public async Task CreateOrUpdateAsync_WithBytes_ReturnsFalse_WhenContentIsUnchanged()
+	{
+		// Arrange
+		const string key = "create-or-update-unchanged-bytes";
+		byte[] bytes = Encoding.UTF8.GetBytes(StandardContent);
+
+		// Create the blob first
+		await BlobStoreInterface.CreateAsync(key, bytes);
+
+		// Act - Try to update with the same content
+		bool result = await BlobStoreInterface.CreateOrUpdateAsync(key, bytes);
+
+		// Assert - Should return false because content is unchanged
+		await Assert.That(result).IsFalse();
+
+		// Verify content is still there
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
+	}
+
+	[Test]
+	public async Task CreateOrUpdateAsync_WithReadOnlyMemory_CreatesNewBlob_WhenBlobDoesNotExist()
+	{
+		// Arrange
+		const string key = "create-or-update-new-rom";
+		ReadOnlyMemory<byte> bytes = Encoding.UTF8.GetBytes(StandardContent);
+
+		// Act
+		bool result = await BlobStoreInterface.CreateOrUpdateAsync(key, bytes);
+
+		// Assert
+		await Assert.That(result).IsTrue();
+
+		// Verify content
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
+	}
+
+	[Test]
+	public async Task CreateOrUpdateAsync_WithReadOnlyMemory_UpdatesExistingBlob_WhenBlobExists()
+	{
+		// Arrange
+		const string key = "create-or-update-existing-rom";
+		ReadOnlyMemory<byte> initialBytes = Encoding.UTF8.GetBytes(StandardContent);
+		ReadOnlyMemory<byte> updatedBytes = Encoding.UTF8.GetBytes(UpdatedContent);
+
+		// Create the blob first
+		await BlobStoreInterface.CreateAsync(key, initialBytes);
+
+		// Act
+		bool result = await BlobStoreInterface.CreateOrUpdateAsync(key, updatedBytes);
+
+		// Assert
+		await Assert.That(result).IsTrue();
+
+		// Verify updated content
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(UpdatedContent);
+	}
+
+	[Test]
+	public async Task CreateOrUpdateAsync_WithReadOnlyMemory_ReturnsFalse_WhenContentIsUnchanged()
+	{
+		// Arrange
+		const string key = "create-or-update-unchanged-rom";
+		ReadOnlyMemory<byte> bytes = Encoding.UTF8.GetBytes(StandardContent);
+
+		// Create the blob first
+		await BlobStoreInterface.CreateAsync(key, bytes);
+
+		// Act - Try to update with the same content
+		bool result = await BlobStoreInterface.CreateOrUpdateAsync(key, bytes);
+
+		// Assert - Should return false because content is unchanged
+		await Assert.That(result).IsFalse();
+
+		// Verify content is still there
+		using Stream? stream = await BlobStoreInterface.ReadAsync(key);
+		await Assert.That(stream).IsNotNull();
+		string content = await BlobStoreTestsBase<TBlobStore>.ReadStreamContentAsync(stream!);
+		await Assert.That(content).IsEqualTo(StandardContent);
+	}
+
 	#endregion
 
 	#region Delete Tests
@@ -291,6 +531,7 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	{
 		// Arrange
 		string? nullKey = null;
+		byte[] validBytes = Encoding.UTF8.GetBytes(StandardContent);
 
 		// Act & Assert
 		await Assert.ThrowsAsync<ArgumentNullException>(
@@ -306,10 +547,19 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 			async () => await BlobStoreInterface.CreateAsync(nullKey!, WriteContentAsync));
 
 		await Assert.ThrowsAsync<ArgumentNullException>(
+			async () => await BlobStoreInterface.CreateAsync(nullKey!, validBytes));
+
+		await Assert.ThrowsAsync<ArgumentNullException>(
 			async () => await BlobStoreInterface.UpdateAsync(nullKey!, WriteContentAsync));
 
 		await Assert.ThrowsAsync<ArgumentNullException>(
+			async () => await BlobStoreInterface.UpdateAsync(nullKey!, validBytes));
+
+		await Assert.ThrowsAsync<ArgumentNullException>(
 			async () => await BlobStoreInterface.CreateOrUpdateAsync(nullKey!, WriteContentAsync));
+
+		await Assert.ThrowsAsync<ArgumentNullException>(
+			async () => await BlobStoreInterface.CreateOrUpdateAsync(nullKey!, validBytes));
 
 		await Assert.ThrowsAsync<ArgumentNullException>(
 			async () => await BlobStoreInterface.DeleteAsync(nullKey!));
@@ -318,7 +568,7 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	public async Task Methods_ThrowArgumentNullException_WhenWriteHandlerIsNull()
 	{
 		// Arrange
-		Func<Stream, CancellationToken, ValueTask>? nullHandler = null;
+		Func<Stream, ValueTask>? nullHandler = null;
 
 		// Act & Assert
 		await Assert.ThrowsAsync<ArgumentNullException>(
@@ -340,6 +590,7 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 		// Arrange
 		using var cts = new CancellationTokenSource();
 		await cts.CancelAsync(); // Use async version instead of synchronously blocking
+		byte[] validBytes = Encoding.UTF8.GetBytes(StandardContent);
 
 		// Act & Assert
 		await Assert.ThrowsAsync<OperationCanceledException>(
@@ -352,13 +603,22 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 			async () => await BlobStoreInterface.TryReadAsync("key", cts.Token));
 
 		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await BlobStoreInterface.CreateAsync("key", WriteContentAsync, cts.Token));
+			async () => await BlobStoreInterface.CreateAsync("key", cts.Token, WriteContentAsyncWithCancellation));
 
 		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await BlobStoreInterface.UpdateAsync("key", WriteContentAsync, cts.Token));
+			async () => await BlobStoreInterface.CreateAsync("key", validBytes, cts.Token));
 
 		await Assert.ThrowsAsync<OperationCanceledException>(
-			async () => await BlobStoreInterface.CreateOrUpdateAsync("key", WriteContentAsync, cts.Token));
+			async () => await BlobStoreInterface.UpdateAsync("key", cts.Token, WriteContentAsyncWithCancellation));
+
+		await Assert.ThrowsAsync<OperationCanceledException>(
+			async () => await BlobStoreInterface.UpdateAsync("key", validBytes, cts.Token));
+
+		await Assert.ThrowsAsync<OperationCanceledException>(
+			async () => await BlobStoreInterface.CreateOrUpdateAsync("key", cts.Token, WriteContentAsyncWithCancellation));
+
+		await Assert.ThrowsAsync<OperationCanceledException>(
+			async () => await BlobStoreInterface.CreateOrUpdateAsync("key", validBytes, cts.Token));
 
 		await Assert.ThrowsAsync<OperationCanceledException>(
 			async () => await BlobStoreInterface.DeleteAsync("key", cts.Token));
@@ -373,10 +633,16 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	/// </summary>
 	protected async Task<bool> CreateBlobWithContentAsync(string key, string content)
 	{
-		return await BlobStoreInterface.CreateAsync(key, async (stream, ct) =>
-		{
-			await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, content, ct);
-		});
+		return await BlobStoreInterface.CreateAsync(key,
+			async stream => await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, content));
+	}
+
+	/// <summary>
+	/// Converts a string to byte array using UTF-8 encoding.
+	/// </summary>
+	protected static byte[] GetBytesFromString(string content)
+	{
+		return Encoding.UTF8.GetBytes(content);
 	}
 
 	/// <summary>
@@ -384,10 +650,8 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	/// </summary>
 	protected async Task<bool> UpdateBlobWithContentAsync(string key, string content)
 	{
-		return await BlobStoreInterface.UpdateAsync(key, async (stream, ct) =>
-		{
-			await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, content, ct);
-		});
+		return await BlobStoreInterface.UpdateAsync(key,
+			async stream => await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, content));
 	}
 
 	/// <summary>
@@ -395,10 +659,8 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	/// </summary>
 	protected async Task<bool> CreateOrUpdateBlobWithContentAsync(string key, string content)
 	{
-		return await BlobStoreInterface.CreateOrUpdateAsync(key, async (stream, ct) =>
-		{
-			await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, content, ct);
-		});
+		return await BlobStoreInterface.CreateOrUpdateAsync(key,
+			async stream => await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, content));
 	}
 
 	/// <summary>
@@ -424,10 +686,16 @@ internal abstract class BlobStoreTestsBase<TBlobStore>
 	/// <summary>
 	/// A reusable write handler for testing.
 	/// </summary>
-	protected async ValueTask WriteContentAsync(Stream stream, CancellationToken cancellationToken)
+	protected async ValueTask WriteContentAsyncWithCancellation(Stream stream, CancellationToken cancellationToken)
 	{
 		await BlobStoreTestsBase<TBlobStore>.WriteContentToStreamAsync(stream, StandardContent, cancellationToken);
 	}
+
+	/// <summary>
+	/// A reusable write handler for testing.
+	/// </summary>
+	protected ValueTask WriteContentAsync(Stream stream)
+		=> WriteContentAsyncWithCancellation(stream, default);
 
 	#endregion
 }

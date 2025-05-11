@@ -1,10 +1,9 @@
-
-namespace Open.AsyncToolkit.Tests;
+namespace Open.AsyncToolkit.HashedRepository.Tests;
 
 /// <summary>
 /// Tests for the <see cref="HashedBlobRepository"/> class.
 /// </summary>
-internal sealed class HashedBlobRepositoryTests
+public sealed class HashedBlobRepositoryTests
 {
 	// Use the real (test covered) Sha256HashProvider instead of mocking
 	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;
@@ -14,14 +13,12 @@ internal sealed class HashedBlobRepositoryTests
 	private const string StandardContent = "test content";
 	private static readonly ReadOnlyMemory<byte> StandardTestData = Encoding.UTF8.GetBytes(StandardContent);
 
-	private IBlobRepo<Guid> _blobRepo = default!;
-	private ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap = default!;
+	private readonly IBlobRepo<Guid> _blobRepo;
+	private readonly ISynchronizedAsyncDictionary<string, IReadOnlyCollection<Guid>> _hashMap;
+	private readonly IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry;
+	private readonly HashedBlobRepository _repository;
 
-	private IAsyncDictionaryEntry<string, IReadOnlyCollection<Guid>> _asyncDictionaryEntry = default!;
-	private HashedBlobRepository _repository = default!;
-
-	[Before(Test)]
-	public void Setup()
+	public HashedBlobRepositoryTests()
 	{
 		// Create the mock dependencies using NSubstitute
 		_blobRepo = Substitute.For<IBlobRepo<Guid>>();
@@ -133,8 +130,7 @@ internal sealed class HashedBlobRepositoryTests
 	#endregion
 
 	#region Get Tests
-
-	[Test]
+	[Fact]
 	public async Task Get_ReturnsBlobStream_WhenBlobExists()
 	{
 		// Arrange
@@ -151,7 +147,7 @@ internal sealed class HashedBlobRepositoryTests
 		Stream result = await _repository.GetAsync(guid);
 
 		// Assert
-		await Assert.That(result).IsNotNull();
+		Assert.NotNull(result);
 
 		// Verify that TryReadAsync was called with the correct GUID
 		await _blobRepo.Received(1).TryReadAsync(guid, Arg.Any<CancellationToken>());
@@ -159,10 +155,9 @@ internal sealed class HashedBlobRepositoryTests
 		// Verify the returned stream content
 		using var streamReader = new StreamReader(result);
 		string content = await streamReader.ReadToEndAsync();
-		await Assert.That(content).IsEqualTo("test content");
+		Assert.Equal("test content", content);
 	}
-
-	[Test]
+	[Fact]
 	public async Task Get_ThrowsKeyNotFoundException_WhenBlobDoesNotExist()
 	{
 		// Arrange
@@ -185,8 +180,7 @@ internal sealed class HashedBlobRepositoryTests
 	#endregion
 
 	#region Put Tests
-
-	[Test]
+	[Fact]
 	public async Task Put_ReturnsExistingGuid_WhenExactMatchExists()
 	{
 		// Arrange
@@ -202,7 +196,7 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsEqualTo(existingGuid);
+		Assert.Equal(existingGuid, result);
 
 		// Verify that TryRead was called on the entry
 		await _asyncDictionaryEntry.Received(1).TryRead(Arg.Any<CancellationToken>());
@@ -213,8 +207,7 @@ internal sealed class HashedBlobRepositoryTests
 		// Verify that CreateOrUpdate was NOT called (since we found a match)
 		await VerifyCreateOrUpdateNotCalled();
 	}
-
-	[Test]
+	[Fact]
 	public async Task Put_ReturnsNewGuid_WhenNoExactMatchExists()
 	{
 		// Arrange
@@ -229,7 +222,7 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+		Assert.NotEqual(Guid.Empty, result);
 
 		// Verify that Read was called on the entry
 		await _asyncDictionaryEntry.Received(1).TryRead(Arg.Any<CancellationToken>());
@@ -238,7 +231,7 @@ internal sealed class HashedBlobRepositoryTests
 		await VerifyCreateOrUpdateCalledWithGuidCount(1);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_ReturnsNewGuid_WhenExistingBlobHasDifferentLength()
 	{
 		// Arrange
@@ -257,13 +250,13 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(existingGuid);
+		Assert.NotEqual(existingGuid, result);
 
 		// Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
 		await VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_ReturnsNewGuid_WhenExistingBlobHasDifferentContent()
 	{
 		// Arrange
@@ -282,13 +275,13 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(existingGuid);
+		Assert.NotEqual(existingGuid, result);
 
 		// Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
 		await VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_HandlesMultipleExistingGuids_FindsMatchingOne()
 	{
 		// Arrange
@@ -312,18 +305,22 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsEqualTo(matchingGuid);
+		Assert.Equal(matchingGuid, result);
 
 		// Verify that CreateOrUpdate was NOT called (since we found a match)
 		await VerifyCreateOrUpdateNotCalled();
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_PropagatesCancellation_WhenCancellationIsRequested()
 	{
 		// Arrange
 		using var cancellationTokenSource = new CancellationTokenSource();
+#if NET9_0_OR_GREATER
 		await cancellationTokenSource.CancelAsync();
+#else
+		cancellationTokenSource.Cancel();
+#endif
 
 		// Configure the mocks to throw when cancellation token is used
 		_hashMap.LeaseAsync(
@@ -343,10 +340,10 @@ internal sealed class HashedBlobRepositoryTests
 			exceptionThrown = true;
 		}
 
-		await Assert.That(exceptionThrown).IsTrue();
+		Assert.True(exceptionThrown);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_HandlesNullStreamFromBlobStore()
 	{
 		// Arrange
@@ -365,13 +362,13 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(existingGuid);
+		Assert.NotEqual(existingGuid, result);
 
 		// Verify that CreateOrUpdate was called on the entry with a collection containing both GUIDs
 		await VerifyCreateOrUpdateCalledWithGuids(existingGuid, capturedGuid);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_HandlesEmptyNonNullSet_CreatesNewSet()
 	{
 		// Arrange
@@ -387,7 +384,7 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+		Assert.NotEqual(Guid.Empty, result);
 
 		// Verify that Read was called on the entry
 		await _asyncDictionaryEntry.Received(1).TryRead(Arg.Any<CancellationToken>());
@@ -396,7 +393,7 @@ internal sealed class HashedBlobRepositoryTests
 		await VerifyCreateOrUpdateCalledWithGuidCount(1);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_UpdatesSetAndReturnsNewGuid_WhenNoMatchesInSetOfMultiple()
 	{
 		// Arrange
@@ -420,10 +417,10 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(Guid.Empty);
-		await Assert.That(result).IsNotEqualTo(nonMatchingGuid1);
-		await Assert.That(result).IsNotEqualTo(nonMatchingGuid2);
-		await Assert.That(result).IsNotEqualTo(nonMatchingGuid3);
+		Assert.NotEqual(Guid.Empty, result);
+		Assert.NotEqual(nonMatchingGuid1, result);
+		Assert.NotEqual(nonMatchingGuid2, result);
+		Assert.NotEqual(nonMatchingGuid3, result);
 
 		// Verify that ReadAsync was called for all GUIDs
 		await _blobRepo.Received().ReadAsync(nonMatchingGuid1, Arg.Any<CancellationToken>());
@@ -442,7 +439,7 @@ internal sealed class HashedBlobRepositoryTests
 
 	#region Edge Cases and Error Handling
 
-	[Test]
+	[Fact]
 	public async Task Put_HandlesEmptyData()
 	{
 		// Arrange
@@ -458,13 +455,13 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(emptyData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+		Assert.NotEqual(Guid.Empty, result);
 
 		// Verify that CreateOrUpdate was called on the entry
 		await VerifyCreateOrUpdateCalledWithGuidCount(1);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_HandlesLargeBlobsEfficiently()
 	{
 		// Arrange - Create a "large" blob for test purposes (not actually large to avoid memory issues in tests)
@@ -481,10 +478,10 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(largeData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+		Assert.NotEqual(Guid.Empty, result);
 	}
 
-	[Test]
+	[Fact]
 	public async Task Put_UpdatesHashMapWithNewGuid_WhenAllExistingBlobsAreMissing()
 	{
 		// Arrange
@@ -503,7 +500,7 @@ internal sealed class HashedBlobRepositoryTests
 		Guid result = await _repository.PutAsync(StandardTestData);
 
 		// Assert
-		await Assert.That(result).IsNotEqualTo(deletedGuid);
+		Assert.NotEqual(deletedGuid, result);
 
 		// Verify that CreateOrUpdate was called with a collection containing both GUIDs
 		// (the missing one and the new one - we don't clean up missing GUIDs)

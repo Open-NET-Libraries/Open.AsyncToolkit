@@ -20,7 +20,20 @@ public interface ICreateAndUpdateBlobs<TKey>
 	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, Func{Stream, CancellationToken, ValueTask}, CancellationToken)"/>
 	ValueTask<bool> CreateOrUpdateAsync(
 		TKey key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler);
+
+	/// <summary>
+	/// Creates a new blob or updates an existing blob with the specified key.
+	/// </summary>
+	/// <returns>
+	/// <see langword="true"/> if the blob was created or updated;
+	/// otherwise <see langword="false"/>.
+	/// </returns>
+	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, ReadOnlyMemory{byte}, CancellationToken)" />
+	ValueTask<bool> CreateOrUpdateAsync(
+		TKey key,
+		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default);
 }
 

@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Description>Core interfaces and types for blob storage operations with async support</Description>
     <PackageTags>async;blob;storage</PackageTags>
-	  <NoWarn>$(NoWarn);CA1513;</NoWarn>
+	  <NoWarn>$(NoWarn);CA1513;CA1068;</NoWarn>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
 	<ItemGroup>
+	  <None Include="README.md" Pack="true" PackagePath="\" />
 	  <ProjectReference Include="..\Open.AsyncToolkit.KeyValue\Open.AsyncToolkit.KeyValue.csproj" />
 	</ItemGroup>
 	

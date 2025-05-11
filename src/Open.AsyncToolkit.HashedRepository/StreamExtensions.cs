@@ -1,7 +1,7 @@
 #if NETSTANDARD2_0
 using System.Runtime.InteropServices;
 
-namespace Open.AsyncToolkit.BlobStorage.HashedRepository;
+namespace Open.AsyncToolkit.HashedRepository;
 
 /// <summary>
 /// Extension methods for Stream operations.

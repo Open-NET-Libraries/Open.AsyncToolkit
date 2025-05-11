@@ -14,10 +14,23 @@ public interface IUpdateBlobs<TKey>
 	/// <see langword="true"/> if the blob was updated;
 	/// otherwise <see langword="false"/>.
 	/// </returns>
-	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, Func{Stream, CancellationToken, ValueTask}, CancellationToken)"/>
+	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>
 	ValueTask<bool> UpdateAsync(
 		TKey key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler);
+
+	/// <summary>
+	/// Updates an existing blob with the specified key.
+	/// </summary>
+	/// <returns>
+	/// <see langword="true"/> if the blob was updated;
+	/// otherwise <see langword="false"/>.
+	/// </returns>
+	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, ReadOnlyMemory{byte}, CancellationToken)" />
+	ValueTask<bool> UpdateAsync(
+		TKey key,
+		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default);
 }
 

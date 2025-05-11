@@ -50,10 +50,58 @@ public class MemoryBlobStore<TKey>
 	}
 
 	/// <inheritdoc />
+	public ValueTask<bool> CreateAsync(
+		TKey key, ReadOnlyMemory<byte> data,
+		CancellationToken cancellationToken = default)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+
+		// Optimistically attempt preventing copying the data.
+		if (_store.ContainsKey(key))
+			return new ValueTask<bool>(false);
+
+		return new(_store.TryAdd(key, data.ToArray()));
+	}
+
+	/// <inheritdoc />
+	public ValueTask<bool> CreateOrUpdateAsync(
+		TKey key, ReadOnlyMemory<byte> data,
+		CancellationToken cancellationToken = default)
+	{
+		bool updated = false;
+		_store.AddOrUpdate(key,
+			_ =>
+			{
+				updated = true;
+				return data.ToArray();
+			},
+			(k, current) =>
+			{
+				updated = !data.Span.SequenceEqual(current);
+				return updated ? data.ToArray() : current;
+			});
+
+		return new(updated);
+	}
+
+	/// <inheritdoc />
+	public ValueTask<bool> UpdateAsync(
+		TKey key, ReadOnlyMemory<byte> data,
+		CancellationToken cancellationToken = default)
+	{
+		bool updated
+			= _store.TryGetValue(key, out byte[]? prev)
+			&& !data.Span.SequenceEqual(prev)
+			&& _store.TryUpdate(key, data.ToArray(), prev);
+
+		return new(updated);
+	}
+
+	/// <inheritdoc />
 	public async ValueTask<bool> CreateAsync(
 		TKey key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
 	{
 		if (writeHandler is null) throw new ArgumentNullException(nameof(writeHandler));
 		cancellationToken.ThrowIfCancellationRequested();
@@ -70,10 +118,10 @@ public class MemoryBlobStore<TKey>
 	/// <inheritdoc />
 	public async ValueTask<bool> CreateOrUpdateAsync(
 		TKey key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
 	{
-		if (writeHandler == null) throw new ArgumentNullException(nameof(writeHandler));
+		if (writeHandler is null) throw new ArgumentNullException(nameof(writeHandler));
 		cancellationToken.ThrowIfCancellationRequested();
 
 		using var ms = new MemoryStream();
@@ -86,10 +134,10 @@ public class MemoryBlobStore<TKey>
 	/// <inheritdoc />
 	public async ValueTask<bool> UpdateAsync(
 		TKey key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
 	{
-		if (writeHandler == null) throw new ArgumentNullException(nameof(writeHandler));
+		if (writeHandler is null) throw new ArgumentNullException(nameof(writeHandler));
 		cancellationToken.ThrowIfCancellationRequested();
 
 		if (!_store.ContainsKey(key))

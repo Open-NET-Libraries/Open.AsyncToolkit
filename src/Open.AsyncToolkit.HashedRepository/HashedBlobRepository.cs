@@ -1,4 +1,4 @@
-﻿namespace Open.AsyncToolkit.BlobStorage.HashedRepository;
+﻿namespace Open.AsyncToolkit.HashedRepository;
 
 /// <summary>
 /// An opinionated means of storing blobs in a blob store

@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Description>Implementation of a blob repository with content-based hash identifiers</Description>
     <PackageTags>async;blob;storage;hash;repository</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <ProjectReference Include="..\Open.AsyncToolkit.BlobStorage\Open.AsyncToolkit.BlobStorage.csproj" />
   </ItemGroup>
 	

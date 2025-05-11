@@ -1,14 +1,14 @@
-namespace Open.AsyncToolkit.Tests;
+namespace Open.AsyncToolkit.HashedRepository.Tests;
 
 /// <summary>
 /// Tests for the <see cref="Sha256HashProvider"/> class.
 /// </summary>
-internal sealed class Sha256HashProviderTests
+public sealed class Sha256HashProviderTests
 {
 	private static readonly Sha256HashProvider HashProvider = Sha256HashProvider.Default;
 
 	// Known hash test values
-	private static readonly byte[] EmptyData = [];
+	private static readonly byte[] EmptyData = Array.Empty<byte>();
 	private const string EmptyDataHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 	private const string SimpleDataText = "test data";
@@ -16,29 +16,26 @@ internal sealed class Sha256HashProviderTests
 	private const string SimpleDataHash = "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9";
 
 	private const int LargeDataSize = 1024 * 1024; // 1MB
-
-	[Test]
-	public async Task ComputeHash_ReturnsCorrectHash_ForEmptyData()
+	[Fact]
+	public void ComputeHash_ReturnsCorrectHash_ForEmptyData()
 	{
 		// Act
 		string hash = HashProvider.ComputeHash(EmptyData);
 
 		// Assert
-		await Assert.That(hash).IsEqualTo(EmptyDataHash);
+		Assert.Equal(EmptyDataHash, hash);
 	}
-
-	[Test]
-	public async Task ComputeHash_ReturnsCorrectHash_ForSimpleData()
+	[Fact]
+	public void ComputeHash_ReturnsCorrectHash_ForSimpleData()
 	{
 		// Act
 		string hash = HashProvider.ComputeHash(SimpleData);
 
 		// Assert
-		await Assert.That(hash).IsEqualTo(SimpleDataHash);
+		Assert.Equal(SimpleDataHash, hash);
 	}
-
-	[Test]
-	public async Task ComputeHash_ReturnsConsistentHash_ForSameData()
+	[Fact]
+	public void ComputeHash_ReturnsConsistentHash_ForSameData()
 	{
 		// Arrange
 		byte[] data1 = Encoding.UTF8.GetBytes("consistent data");
@@ -49,11 +46,10 @@ internal sealed class Sha256HashProviderTests
 		string hash2 = HashProvider.ComputeHash(data2);
 
 		// Assert
-		await Assert.That(hash1).IsEqualTo(hash2);
+		Assert.Equal(hash1, hash2);
 	}
-
-	[Test]
-	public async Task ComputeHash_ReturnsDifferentHash_ForDifferentData()
+	[Fact]
+	public void ComputeHash_ReturnsDifferentHash_ForDifferentData()
 	{
 		// Arrange
 		byte[] data1 = Encoding.UTF8.GetBytes("data1");
@@ -64,11 +60,10 @@ internal sealed class Sha256HashProviderTests
 		string hash2 = HashProvider.ComputeHash(data2);
 
 		// Assert
-		await Assert.That(hash1).IsNotEqualTo(hash2);
+		Assert.NotEqual(hash1, hash2);
 	}
-
-	[Test]
-	public async Task ComputeHash_HandlesLargeData()
+	[Fact]
+	public void ComputeHash_HandlesLargeData()
 	{
 		// Arrange
 		byte[] largeData = new byte[LargeDataSize];
@@ -78,7 +73,7 @@ internal sealed class Sha256HashProviderTests
 		string hash = HashProvider.ComputeHash(largeData);
 
 		// Assert
-		await Assert.That(hash).IsNotNull();
-		await Assert.That(hash.Length).IsEqualTo(64); // SHA-256 hash is 64 hex chars
+		Assert.NotNull(hash);
+		Assert.Equal(64, hash.Length); // SHA-256 hash is 64 hex chars
 	}
 }

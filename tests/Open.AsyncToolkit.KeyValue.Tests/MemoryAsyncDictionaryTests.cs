@@ -3,7 +3,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// <summary>
 /// Tests for the <see cref="MemoryAsyncDictionary{TKey, TValue}"/> class.
 /// </summary>
-internal class MemoryAsyncDictionaryTests
+internal sealed class MemoryAsyncDictionaryTests
 {
 	private MemoryAsyncDictionary<string, string> _dictionary = null!;
 	private IAsyncDictionary<string, string> _asyncDictionary = null!;

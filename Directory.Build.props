@@ -5,13 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TargetFrameworks>net9.0</TargetFrameworks>
-    <NoWarn>$(NoWarn);CA1513;</NoWarn>
-    <Authors>electricessence</Authors>
+    <Authors>electricessence (Oren F.)</Authors>
     <Company>Open-NET-Libraries</Company>
-    <Copyright>Copyright © electricessence $([System.DateTime]::Now.Year)</Copyright>
+    <Copyright>© electricessence (Oren F.) All rights reserved.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
-    <PackageIcon>icon.png</PackageIcon>
+    <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -20,7 +19,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Deterministic>true</Deterministic>
-		<NoWarn>$(NoWarn);CA1303;</NoWarn>
+		<NoWarn>$(NoWarn);CA1303;CA1513;</NoWarn>
   </PropertyGroup>
 
   <!-- Common package references for all projects -->
@@ -49,7 +48,7 @@
   <!-- Common items to include in the package -->
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" PackagePath="\" Visible="false" />
-    <None Include="$(MSBuildThisFileDirectory)\icon.png" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)\icon.png')" />
+    <None Include="$(MSBuildThisFileDirectory)\logo.png" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)\logo.png')" />
   </ItemGroup>
 
 </Project>

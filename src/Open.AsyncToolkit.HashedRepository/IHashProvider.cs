@@ -1,7 +1,4 @@
-using System.Diagnostics.Contracts;
-using System.Text;
-
-namespace Open.AsyncToolkit.BlobStorage.HashedRepository;
+namespace Open.AsyncToolkit.HashedRepository;
 
 /// <summary>
 /// Defines basic hashing operations for computing content-based identifiers.
@@ -51,7 +48,7 @@ public static class HashProviderExtensions
 	}
 
 #if NETSTANDARD2_0
-	// A shim for NETSTANDARD2_0 to av
+	// A shim for NETSTANDARD2_0 to avoid allocation.
 	static int ComputeHashWithoutCopy(ReadOnlySpan<char> data, Span<byte> result, Encoding encoding)
 	{
 		// Since NETSTANDARD2.0 doesn't have GetBytes(ReadOnlySpan<char>, Span<byte>),

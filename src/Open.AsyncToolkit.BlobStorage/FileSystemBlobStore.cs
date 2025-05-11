@@ -88,7 +88,7 @@ public sealed class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	public async ValueTask<TryReadResult<ReadOnlyMemory<byte>>> TryReadBytesAsync(string key, CancellationToken cancellationToken = default)
+	public new async ValueTask<TryReadResult<byte[]>> TryReadBytesAsync(string key, CancellationToken cancellationToken = default)
 	{
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA1849 // Call async methods when in an async method
@@ -96,17 +96,27 @@ public sealed class FileSystemBlobStore : IBlobStore
 #pragma warning restore CA1849 // Call async methods when in an async method
 #pragma warning restore IDE0079 // Remove unnecessary suppression
 
-		if (stream is null) return TryReadResult.NotFound<ReadOnlyMemory<byte>>();
+		if (stream is null) return TryReadResult.NotFound<byte[]>();
+		if (stream.Length == 0) return TryReadResult.Success(Array.Empty<byte>());
+
 		byte[] buffer = new byte[stream.Length];
-#if NETSTANDARD2_0
-		await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-#else
-		await stream.ReadAsync(buffer, cancellationToken)
-#endif
+
+		await stream
+			.ReadAsync(buffer, cancellationToken)
 			.ConfigureAwait(false);
 
-		return TryReadResult.Success<ReadOnlyMemory<byte>>(buffer);
+		return TryReadResult.Success(buffer);
+	}
 
+	async ValueTask<TryReadResult<ReadOnlyMemory<byte>>> IReadBlobs<string>.TryReadBytesAsync(
+		string key,
+		CancellationToken cancellationToken)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+		var result = await TryReadBytesAsync(key, cancellationToken).ConfigureAwait(false);
+		return result.Success
+			? TryReadResult.Success<ReadOnlyMemory<byte>>(result.Value)
+			: TryReadResult.NotFound<ReadOnlyMemory<byte>>();
 	}
 
 	/// <returns><see langword="true"/> if successful; otherwise <see langword="false"/> if not found.</returns>
@@ -138,7 +148,7 @@ public sealed class FileSystemBlobStore : IBlobStore
 		Func<Stream, CancellationToken, ValueTask> writeHandler,
 		CancellationToken cancellationToken = default)
 	{
-		if (writeHandler == null)
+		if (writeHandler is null)
 			throw new ArgumentNullException(nameof(writeHandler));
 
 		cancellationToken.ThrowIfCancellationRequested();
@@ -181,6 +191,12 @@ public sealed class FileSystemBlobStore : IBlobStore
 				if (!overwrite)
 					return false;
 
+				if (await FileEqualsAsync(path, tempPath).ConfigureAwait(false))
+				{
+					File.Delete(tempPath);
+					return false;
+				}
+
 				File.Delete(path);
 			}
 
@@ -202,18 +218,102 @@ public sealed class FileSystemBlobStore : IBlobStore
 		}
 	}
 
+	private static async ValueTask<bool> FileEqualsAsync(string path, string tempPath)
+	{
+		// Quick check: Compare file lengths first
+		var originalInfo = new FileInfo(path);
+		var tempInfo = new FileInfo(tempPath);
+
+		if (originalInfo.Length != tempInfo.Length)
+			return false;
+
+		// If both files are empty, they're equal
+		if (originalInfo.Length == 0)
+			return true;
+
+		// Buffer size for streaming comparison (4KB is a common file system buffer size)
+		const int bufferSize = 4096;
+
+		// Stream both files and compare their contents
+		using var originalStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, useAsync: true);
+		using var tempStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, useAsync: true);
+
+		byte[] buffer1 = new byte[bufferSize];
+		byte[] buffer2 = new byte[bufferSize];
+
+		int bytesRead1, bytesRead2;
+		do
+		{
+#if NETSTANDARD2_0
+			bytesRead1 = await originalStream
+				.ReadAsync(buffer1, 0, buffer1.Length)
+				.ConfigureAwait(false);
+			bytesRead2 = await tempStream
+				.ReadAsync(buffer2, 0, buffer2.Length)
+				.ConfigureAwait(false);
+#else
+                bytesRead1 = await originalStream
+					.ReadAsync(buffer1)
+					.ConfigureAwait(false);
+                bytesRead2 = await tempStream
+					.ReadAsync(buffer2)
+					.ConfigureAwait(false);
+#endif
+
+			// If we read different amounts, files are different
+			if (bytesRead1 != bytesRead2)
+				return false;
+
+			// Compare the buffers
+			for (int i = 0; i < bytesRead1; i++)
+			{
+				if (buffer1[i] != buffer2[i])
+					return false;
+			}
+		}
+		while (bytesRead1 > 0); // Continue until we've read the whole file
+
+		return true;
+	}
+
+	private static Func<Stream, CancellationToken, ValueTask> GetWriteHandler(
+		ReadOnlyMemory<byte> data)
+		=> (stream, ct) =>
+		{
+			ct.ThrowIfCancellationRequested();
+			return stream.WriteAsync(data, ct);
+		};
+
+	/// <inheritdoc />
+	ValueTask<bool> IUpdateBlobs<string>.UpdateAsync(
+		string key, ReadOnlyMemory<byte> data,
+		CancellationToken cancellationToken)
+		=> UpdateAsync(key, cancellationToken, GetWriteHandler(data));
+
+	/// <inheritdoc />
+	public ValueTask<bool> CreateAsync(
+		string key, ReadOnlyMemory<byte> data,
+		CancellationToken cancellationToken = default)
+		=> CreateAsync(key, cancellationToken, GetWriteHandler(data));
+
+	/// <inheritdoc />
+	public ValueTask<bool> CreateOrUpdateAsync(
+		string key, ReadOnlyMemory<byte> data,
+		CancellationToken cancellationToken = default)
+		=> CreateOrUpdateAsync(key, cancellationToken, GetWriteHandler(data));
+
 	/// <inheritdoc />
 	public ValueTask<bool> CreateAsync(
 		string key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
 		=> WriteAsync(key, false, writeHandler, cancellationToken);
 
 	/// <inheritdoc />
 	public ValueTask<bool> CreateOrUpdateAsync(
 		string key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
 		=> WriteAsync(key, true, writeHandler, cancellationToken);
 
 	/// <summary>
@@ -280,9 +380,9 @@ public sealed class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	ValueTask<bool> IUpdateBlobs<string>.UpdateAsync(
+	public ValueTask<bool> UpdateAsync(
 		string key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
-		CancellationToken cancellationToken)
-		=> WriteAsync(key, true, writeHandler, cancellationToken);
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
+		=> Exists(key) ? WriteAsync(key, true, writeHandler, cancellationToken) : new(false);
 }

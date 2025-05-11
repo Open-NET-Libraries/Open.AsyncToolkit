@@ -1,6 +1,9 @@
 global using NSubstitute;
 global using Open.AsyncToolkit.BlobStorage;
-global using Open.AsyncToolkit.BlobStorage.HashedRepository;
 global using Open.AsyncToolkit.KeyValue;
+global using System;
 global using System.Collections.Frozen;
 global using System.Text;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using Xunit;

@@ -15,14 +15,23 @@ public interface ICreateBlobs<TKey>
 	/// </summary>
 	/// <param name="key">The key identifying the blob.</param>
 	/// <param name="writeHandler">A delegate that writes data to the provided stream.</param>
-	/// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
+	/// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
 	/// <returns>
 	/// <see langword="true"/> if the blob was created;
 	/// otherwise <see langword="false"/>.
 	/// </returns>
 	ValueTask<bool> CreateAsync(
 		TKey key,
-		Func<Stream, CancellationToken, ValueTask> writeHandler,
+		CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler);
+
+	/// <param name="key">The key identifying the blob.</param>
+	/// <param name="data">The bytes to store.</param>
+	/// <param name="cancellationToken">An optional token to monitor for cancellation requests.</param>
+	/// <inheritdoc cref="CreateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})" />
+	ValueTask<bool> CreateAsync(
+		TKey key,
+		ReadOnlyMemory<byte> data,
 		CancellationToken cancellationToken = default);
 }
 
