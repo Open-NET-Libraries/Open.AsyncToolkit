@@ -34,8 +34,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.HashedRep
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.BlobStorage.Tests", "tests\Open.AsyncToolkit.BlobStorage.Tests\Open.AsyncToolkit.BlobStorage.Tests.csproj", "{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open.AsyncToolkit.HashedRepository.Tests", "tests\Open.AsyncToolkit.HashedRepository.Tests\Open.AsyncToolkit.HashedRepository.Tests.csproj", "{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -118,18 +116,6 @@ Global
 		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x64.Build.0 = Release|Any CPU
 		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x86.ActiveCfg = Release|Any CPU
 		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166}.Release|x86.Build.0 = Release|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Debug|x64.Build.0 = Debug|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Debug|x86.Build.0 = Debug|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Release|x64.ActiveCfg = Release|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Release|x64.Build.0 = Release|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Release|x86.ActiveCfg = Release|Any CPU
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -141,7 +127,6 @@ Global
 		{572D21B5-EF7F-0912-9FC0-498AFDBB0C29} = {5BC16F49-1231-4D8C-8638-8631DF182980}
 		{99663991-B036-4E4A-B178-F705920BDAC6} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
 		{A6B63396-96FC-43DA-9E6F-F01C0CF5E166} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
-		{F21CE1DB-6A51-EEBC-4473-4CE63D0F240E} = {A7829E28-62A0-4EBC-8A27-AAB60D962C60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {71FF8EB2-F3E3-47D3-A1DF-931217A231AF}

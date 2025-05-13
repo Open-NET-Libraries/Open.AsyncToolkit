@@ -4,10 +4,10 @@
 /// Provides a unique ID as a <see langword="string"/>.
 /// </summary>
 public class GuidStringProvider
-	: IUniqueIdProvider<string>
+	: IUniqueIdProvider<GuidString>
 {
 	/// <inheritdoc />
-	public string NewId() => Guid.NewGuid().ToString();
+	public GuidString NewId() => Guid.NewGuid();
 
 	/// <summary>
 	/// Singleton instance of <see cref="GuidStringProvider"/>.

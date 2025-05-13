@@ -163,10 +163,10 @@ public class HashedBlobRepository<TUniqueId>
 /// <param name="hashMap">The hash map to use for mapping hashes to IDs.</param>
 /// <param name="hashProvider">The hash provider to use for computing hashes.</param>
 public class HashedBlobRepository(
-	IBlobRepo<string> blobRepo,
-	ISynchronizedAsyncDictionary<string, IReadOnlyCollection<string>> hashMap,
+	IBlobRepo<GuidString> blobRepo,
+	ISynchronizedAsyncDictionary<string, IReadOnlyCollection<GuidString>> hashMap,
 	IHashProvider? hashProvider)
-	: HashedBlobRepository<string>(
+	: HashedBlobRepository<GuidString>(
 	  blobRepo, hashMap,
 	  GuidStringProvider.Instance,
 	  hashProvider)
@@ -187,8 +187,8 @@ public class HashedBlobRepository(
 	/// </summary>
 	/// <remarks>Uses a string as the underlying ID generated from a new GUID.</remarks>
 	public static HashedBlobRepository Create(
-		IBlobRepo<string> blobRepo,
-		ISynchronizedAsyncDictionary<string, IReadOnlyCollection<string>> hashMap,
+		IBlobRepo<GuidString> blobRepo,
+		ISynchronizedAsyncDictionary<string, IReadOnlyCollection<GuidString>> hashMap,
 		IHashProvider? hashProvider = null)
 		=> new(blobRepo, hashMap, hashProvider);
 }

@@ -1,5 +1,6 @@
 ﻿global using System.Buffers;
 global using System.Diagnostics.Contracts;
+global using System.Diagnostics.CodeAnalysis;
 global using System.Text;
 global using Open.AsyncToolkit.KeyValue;
 global using Open.AsyncToolkit.BlobStorage;
