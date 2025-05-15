@@ -9,6 +9,7 @@ namespace Open.AsyncToolkit.BlobStorage;
 /// </summary>
 public static class BlobStorageExtensions
 {
+	/// <exception cref="ArgumentNullException">If <paramref name="target"/> is <see langword="null"/>.</exception>
 	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>
 	public static ValueTask<bool> CreateAsync<TKey>(
 		this ICreateBlobs<TKey> target,
@@ -20,6 +21,7 @@ public static class BlobStorageExtensions
 			(stream, _) => writeHandler(stream));
 	}
 
+	/// <exception cref="ArgumentNullException">If <paramref name="target"/> is <see langword="null"/>.</exception>
 	/// <inheritdoc cref="IUpdateBlobs{TKey}.UpdateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>
 	public static ValueTask<bool> UpdateAsync<TKey>(
 		this IUpdateBlobs<TKey> target,
@@ -31,6 +33,7 @@ public static class BlobStorageExtensions
 			(stream, _) => writeHandler(stream));
 	}
 
+	/// <exception cref="ArgumentNullException">If <paramref name="target"/> is <see langword="null"/>.</exception>
 	/// <inheritdoc cref="ICreateAndUpdateBlobs{TKey}.CreateOrUpdateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>/>
 	public static ValueTask<bool> CreateOrUpdateAsync<TKey>(
 		this ICreateAndUpdateBlobs<TKey> target,
@@ -40,6 +43,37 @@ public static class BlobStorageExtensions
 		if (target is null) throw new ArgumentNullException(nameof(target));
 		return target.CreateOrUpdateAsync(key, CancellationToken.None,
 			(stream, _) => writeHandler(stream));
+	}
+
+	/// <summary>
+	/// Retrieves the blob data for the specified key. If the blob does not exist, it creates it using the provided write handler.
+	/// </summary>
+	/// <exception cref="IOException">If the blob cannot be read after creation.</exception>
+	/// <inheritdoc cref="ICreateAndUpdateBlobs{TKey}.CreateOrUpdateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>/>
+	public static async ValueTask<ReadOnlyMemory<byte>> GetOrCreateAsync<TKey>(
+		this IBlobRepo<TKey> target,
+		TKey key, CancellationToken cancellationToken,
+		Func<Stream, CancellationToken, ValueTask> writeHandler)
+		where TKey : notnull
+	{
+		if (target is null) throw new ArgumentNullException(nameof(target));
+		var tryReadResult = await target.TryReadBytesAsync(key, cancellationToken).ConfigureAwait(false);
+		if (tryReadResult.Success) return tryReadResult.Value;
+
+		await target.CreateAsync(key, cancellationToken, writeHandler).ConfigureAwait(false);
+		tryReadResult = await target.TryReadBytesAsync(key, cancellationToken).ConfigureAwait(false);
+		if (!tryReadResult.Success) throw new IOException("Failed to read the blob after creating it.");
+		return tryReadResult.Value;
+	}
+
+	/// <inheritdoc cref="GetOrCreateAsync{TKey}(IBlobRepo{TKey}, TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>/>
+	public static async ValueTask<ReadOnlyMemory<byte>> GetOrCreateAsync<TKey>(
+		this IBlobRepo<TKey> target,
+		TKey key, Func<Stream, ValueTask> writeHandler)
+		where TKey : notnull
+	{
+		if (target is null) throw new ArgumentNullException(nameof(target));
+		return await target.GetOrCreateAsync(key, CancellationToken.None, (stream, _) => writeHandler(stream)).ConfigureAwait(false);
 	}
 
 #if NETSTANDARD2_0

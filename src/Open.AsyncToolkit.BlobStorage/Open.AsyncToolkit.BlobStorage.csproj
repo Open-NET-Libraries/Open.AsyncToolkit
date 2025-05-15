@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-		<VersionPrefix>1.0.3</VersionPrefix>
+		<VersionPrefix>1.0.4</VersionPrefix>
 		<NoWarn>$(NoWarn);CA1513;CA1068;</NoWarn>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 

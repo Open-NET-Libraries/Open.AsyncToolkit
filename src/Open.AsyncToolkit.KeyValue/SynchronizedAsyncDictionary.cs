@@ -7,7 +7,8 @@ namespace Open.AsyncToolkit.KeyValue;
 /// </summary>
 /// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
 /// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
-public class SynchronizedAsyncDictionary<TKey, TValue> : ISynchronizedAsyncDictionary<TKey, TValue>
+public class SynchronizedAsyncDictionary<TKey, TValue>
+	: ISynchronizedAsyncDictionary<TKey, TValue>
 	, IDisposable
 	where TKey : notnull
 {
