@@ -82,4 +82,43 @@ public static class SynchronizedAsyncDictionaryExtensions
 		return asyncDictionary
 			.LeaseAsync(key, CancellationToken.None, (e, _) => operation(e));
 	}
+
+	/// <summary>
+	/// Gets the value associated with the specified key, or adds a new value if the key does not exist.
+	/// </summary>
+	/// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
+	/// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
+	/// <param name="asyncDictionary">The async dictionary.</param>
+	/// <param name="key">The key to get or add.</param>
+	/// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+	/// <param name="valueFactory">The function to create a new value if the key does not exist.</param>
+	/// <returns>The value associated with the specified key.</returns>
+	/// <exception cref="ArgumentNullException">The <paramref name="asyncDictionary"/> is <see langword="null"/>.</exception>
+	public static async ValueTask<TValue> GetOrAddAsync<TKey, TValue>(
+		this ISynchronizedAsyncDictionary<TKey, TValue> asyncDictionary,
+		TKey key,
+		CancellationToken cancellationToken,
+		Func<TKey, ValueTask<TValue>> valueFactory)
+		where TKey : notnull
+	{
+		if (asyncDictionary is null) throw new ArgumentNullException(nameof(asyncDictionary));
+		var entry = await asyncDictionary.TryReadAsync(key, cancellationToken).ConfigureAwait(false);
+		if (entry.Success) return entry.Value;
+
+		// If the entry doesn't exist, lease it and perform the operation to create it.
+		return await asyncDictionary
+			.LeaseAsync(
+				key, cancellationToken,
+				async (e, ct) =>
+				{
+					var entry = await asyncDictionary.TryReadAsync(key, ct).ConfigureAwait(false);
+					if (entry.Success) return entry.Value;
+
+					var value = await valueFactory(key).ConfigureAwait(false);
+					bool created = await e.Create(value, ct).ConfigureAwait(false);
+					Debug.Assert(created, "Failed to create the entry in the dictionary.");
+					return value;
+				})
+			.ConfigureAwait(false);
+	}
 }

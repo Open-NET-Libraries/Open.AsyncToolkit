@@ -1,7 +1,6 @@
 <Project>
   <!-- Common properties for all projects in the solution -->
   <PropertyGroup>
-		<VersionPrefix>1.0.1</VersionPrefix>
 		<LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -11,6 +10,7 @@
     <Copyright>© electricessence (Oren F.) All rights reserved.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/Open-NET-Libraries/Open.AsyncToolkit</RepositoryUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -48,8 +48,8 @@
 
   <!-- Common items to include in the package -->
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" PackagePath="\" Visible="false" />
-    <None Include="$(MSBuildThisFileDirectory)\logo.png" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)\logo.png')" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)logo.png" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)\logo.png')" />
   </ItemGroup>
 
 </Project>
