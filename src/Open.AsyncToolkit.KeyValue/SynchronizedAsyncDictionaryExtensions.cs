@@ -98,7 +98,7 @@ public static class SynchronizedAsyncDictionaryExtensions
 		this ISynchronizedAsyncDictionary<TKey, TValue> asyncDictionary,
 		TKey key,
 		CancellationToken cancellationToken,
-		Func<TKey, ValueTask<TValue>> valueFactory)
+		Func<TKey, CancellationToken, ValueTask<TValue>> valueFactory)
 		where TKey : notnull
 	{
 		if (asyncDictionary is null) throw new ArgumentNullException(nameof(asyncDictionary));
@@ -114,7 +114,7 @@ public static class SynchronizedAsyncDictionaryExtensions
 					var entry = await asyncDictionary.TryReadAsync(key, ct).ConfigureAwait(false);
 					if (entry.Success) return entry.Value;
 
-					var value = await valueFactory(key).ConfigureAwait(false);
+					var value = await valueFactory(key, ct).ConfigureAwait(false);
 					bool created = await e.Create(value, ct).ConfigureAwait(false);
 					Debug.Assert(created, "Failed to create the entry in the dictionary.");
 					return value;
