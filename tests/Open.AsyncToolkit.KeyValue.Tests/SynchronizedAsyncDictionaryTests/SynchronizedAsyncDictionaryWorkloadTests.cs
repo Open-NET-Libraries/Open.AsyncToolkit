@@ -6,7 +6,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// Advanced workload tests for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
 /// focusing on specific operation patterns like read-heavy, write-heavy, and mixed workloads.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	#region Workload Test Utilities
 

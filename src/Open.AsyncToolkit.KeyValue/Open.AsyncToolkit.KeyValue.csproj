@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.0.1</VersionPrefix>
 		<NoWarn>$(NoWarn);CA1711;</NoWarn>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
 		<Description>Provides foundational building blocks for creating asynchronous key-value stores with robust interfaces, synchronization capabilities, and concurrent access patterns.</Description>
-    <Authors>Open-NET-Libraries</Authors>
     <PackageTags>async;dictionary;key-value;concurrent;synchronized;collections</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

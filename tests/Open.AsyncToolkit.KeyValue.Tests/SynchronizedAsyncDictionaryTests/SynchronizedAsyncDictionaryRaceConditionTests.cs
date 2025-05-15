@@ -7,7 +7,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// Advanced tests specifically targeting race conditions and deadlock detection
 /// in the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	#region Race Condition Tests
 
@@ -340,7 +340,7 @@ public partial class SynchronizedAsyncDictionaryTests
 	/// if the locking mechanism isn't properly implemented.
 	/// </summary>
 	// [Test] // May not be a truly valid test as this kind of deadlocking will happen with semaphores.  
-	private async Task DeadlockSusceptiblePattern_ShouldComplete()
+	private static async Task DeadlockSusceptiblePattern_ShouldComplete()
 	{
 		// Arrange - create a specific pattern of operations that could cause deadlocks
 		const string key1 = $"{RaceTestPrefix}deadlock-a";

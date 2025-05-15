@@ -6,7 +6,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// Advanced stress tests for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
 /// to verify behavior under heavy load and concurrent operations.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	#region Advanced Concurrency Tests
 

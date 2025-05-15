@@ -4,7 +4,10 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// Base class for all tests of the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class.
 /// Contains shared setup, teardown, and utility methods.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design",
+	"CA1001:Types that own disposable fields should be disposable",
+	Justification = "Cleanup method handles this.")]
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	// Constants used throughout tests
 	protected const string TestKey = "test-key";

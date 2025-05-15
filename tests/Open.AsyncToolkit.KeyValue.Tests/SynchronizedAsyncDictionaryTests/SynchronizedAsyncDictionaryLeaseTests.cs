@@ -6,7 +6,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// <summary>
 /// Tests specifically for the lease functionality of <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/>.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	#region Lease Tests
 

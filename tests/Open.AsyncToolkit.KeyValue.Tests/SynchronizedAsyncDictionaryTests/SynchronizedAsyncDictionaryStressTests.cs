@@ -7,7 +7,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// Comprehensive stress tests for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
 /// to verify behavior under extreme workloads combining multiple operation patterns.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	/// <summary>
 	/// Comprehensive stress test that combines several concurrent operations to verify

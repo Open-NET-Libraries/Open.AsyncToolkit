@@ -1,11 +1,12 @@
 <Project>
   <!-- Common properties for all projects in the solution -->
   <PropertyGroup>
-    <LangVersion>preview</LangVersion>
+		<VersionPrefix>1.0.1</VersionPrefix>
+		<LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TargetFrameworks>net9.0</TargetFrameworks>
-    <Authors>electricessence (Oren F.)</Authors>
+		<Authors>electricessence (Oren F.)</Authors>
     <Company>Open-NET-Libraries</Company>
     <Copyright>© electricessence (Oren F.) All rights reserved.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -4,7 +4,7 @@ namespace Open.AsyncToolkit.KeyValue.Tests;
 /// Basic tests for the <see cref="SynchronizedAsyncDictionary{TKey, TValue}"/> class
 /// covering core functionality and simple operations.
 /// </summary>
-public partial class SynchronizedAsyncDictionaryTests
+internal partial class SynchronizedAsyncDictionaryTests
 {
 	#region Read Tests
 

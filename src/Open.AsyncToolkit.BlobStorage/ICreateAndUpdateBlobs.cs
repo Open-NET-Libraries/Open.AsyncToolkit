@@ -17,7 +17,7 @@ public interface ICreateAndUpdateBlobs<TKey>
 	/// <see langword="true"/> if the blob was created or updated;
 	/// otherwise <see langword="false"/>.
 	/// </returns>
-	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, Func{Stream, CancellationToken, ValueTask}, CancellationToken)"/>
+	/// <inheritdoc cref="ICreateBlobs{TKey}.CreateAsync(TKey, CancellationToken, Func{Stream, CancellationToken, ValueTask})"/>
 	ValueTask<bool> CreateOrUpdateAsync(
 		TKey key,
 		CancellationToken cancellationToken,
