@@ -88,7 +88,7 @@ public sealed class FileSystemBlobStore : IBlobStore
 	}
 
 	/// <inheritdoc />
-	public new async ValueTask<TryReadResult<byte[]>> TryReadBytesAsync(string key, CancellationToken cancellationToken = default)
+	public async ValueTask<TryReadResult<byte[]>> TryReadBytesAsync(string key, CancellationToken cancellationToken = default)
 	{
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA1849 // Call async methods when in an async method
