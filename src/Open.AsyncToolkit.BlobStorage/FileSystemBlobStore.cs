@@ -42,11 +42,16 @@ public sealed class FileSystemBlobStore : IBlobStore
 		if (string.IsNullOrEmpty(key))
 			throw new ArgumentNullException(nameof(key));
 
+		 // Normalize path separators
+		string normalizedKey = key
+			.Replace('/', Path.DirectorySeparatorChar)
+			.Replace('\\', Path.DirectorySeparatorChar);
+
 		// Check for invalid characters
-		if (key.Any(static c => InvalidCharacters.Contains(c)))
+		if (normalizedKey.Any(static c => InvalidCharacters.Contains(c)))
 			throw new ArgumentException($"Key contains invalid file name characters: {key}", nameof(key));
 
-		return Path.Combine(_basePath, key);
+		return Path.Combine(_basePath, normalizedKey);
 	}
 
 	// Primary synchronous public methods
