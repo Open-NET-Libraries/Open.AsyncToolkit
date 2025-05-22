@@ -7,7 +7,7 @@ namespace Open.AsyncToolkit.BlobStorage;
 public sealed class FileSystemBlobStore : IBlobStore
 {
 	private readonly string _basePath;
-	private static readonly char[] InvalidCharacters = Path.GetInvalidFileNameChars();
+	private static readonly char[] InvalidCharacters = Path.GetInvalidPathChars();
 
 	private FileSystemBlobStore(string basePath)
 		=> _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
