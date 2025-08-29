@@ -120,7 +120,7 @@ public static class BlobStorageExtensions
 		if (data.IsEmpty) return;
 
 		cancellationToken.ThrowIfCancellationRequested();
-		// Write to the steam manually instead of using the modern methods.
+                // Write to the stream manually instead of using the modern methods.
 
 		// Get a handle to the underlying memory without copying
 		if (MemoryMarshal.TryGetArray(data, out ArraySegment<byte> segment))
